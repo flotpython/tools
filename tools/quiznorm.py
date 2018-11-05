@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+Only purpose is to escape [ and ] in appropriate sections of a quiz file
+"""
+
+
 from nbnorm import replace_file_with_string
 
 
