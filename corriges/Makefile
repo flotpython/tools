@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
-TOOL = ../tools/corriges.py
+
+COURSEDIR = ../../flotpython-course
+
+TOOL = corriges.py
 
 all: everything
 
+map: .FORCE
+	rm -f exomap nbmap; make exomap nbmap
+
 exomap:
-	../tools/exomap.sh
+	map.sh exo $(COURSEDIR) > $@
 
 nbmap:
-	(cd ..; git ls-files w?/w?-s?-[cx]*nb) > nbmap
+	map.sh nb $(COURSEDIR) > $@
 
 .FORCE:
 
@@ -36,13 +42,13 @@ w2 = $(call pys, $(n2))
 w3 = $(call pys, $(n3))
 w4 = $(call pys, $(n4))
 w5 = $(call pys, $(n5))
-w6_code  = ../data/shipdict.py
+w6_code  = $(COURSEDIR)/data/shipdict.py
 w7 = $(call pys, $(n7))
 
 WEEKS = 2 3 4 5 7
 
 define find_source
-$(wildcard ../modules/corrections/$(1) ../data/$(1))
+$(wildcard $(COURSEDIR)/modules/corrections/$(1) $(COURSEDIR)/data/$(1))
 endef
 
 define week_latex_sources
@@ -117,4 +123,4 @@ index:
 # convenience to generate a notebook fragment
 # that can validate all known exos at once
 validation:
-	$(TOOL) -N -o ../modules/corrections/validation $(SOURCES)
+	$(TOOL) -N -o $(COURSEDIR)/modules/corrections/validation $(SOURCES)
