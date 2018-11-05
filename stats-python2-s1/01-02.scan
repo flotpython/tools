@@ -1,0 +1,34 @@
+1360 students have tried at least once
+  15781 ok (successful) trials
++ 51787 ko (unsuccessful) trials
+= 67568 total trials (0.233557305233% success)
+
+27 different exercices -> an average of 49.6823529412 attempts per student
+
+affichage 656 ok + 5581 ko = 6237
+alternat 448 ok + 1346 ko = 1794
+aplatir 555 ok + 1702 ko = 2257
+carre 604 ok + 4957 ko = 5561
+comptage 357 ok + 2898 ko = 3255
+decode_zen 409 ok + 1744 ko = 2153
+diff 524 ok + 2739 ko = 3263
+dispatch1 491 ok + 456 ko = 947
+dispatch2 450 ok + 421 ko = 871
+distance 487 ok + 628 ko = 1115
+divisible 1327 ok + 2296 ko = 3623
+doubler_premier 379 ok + 924 ko = 1303
+doubler_premier2 269 ok + 1028 ko = 1297
+index 968 ok + 2328 ko = 3296
+intersect 401 ok + 1722 ko = 2123
+liste_racines 516 ok + 2037 ko = 2553
+merge 585 ok + 3349 ko = 3934
+multi_tri 986 ok + 2281 ko = 3267
+multi_tri_reverse 809 ok + 2314 ko = 3123
+numbers 439 ok + 771 ko = 1210
+pgcd 500 ok + 776 ko = 1276
+produit_scalaire 621 ok + 971 ko = 1592
+solution 247 ok + 2101 ko = 2348
+spam 934 ok + 3938 ko = 4872
+target 1151 ok + 765 ko = 1916
+validation 386 ok + 596 ko = 982
+validation2 282 ok + 1118 ko = 1400
