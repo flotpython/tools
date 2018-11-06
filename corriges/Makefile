@@ -33,7 +33,7 @@ pdf:: corriges-w6.pdf
 # the default for runcorriges is to produce both a .txt and .tex
 WTEXS =  $(foreach week, $(WEEKS), corriges-w$(week).tex)
 
-everything: corriges-all.tex $(WTEXS)
+everything: corriges-all.tex $(WTEXS) w6
 
 corriges-all.tex: .FORCE
 	$(TOOL) --contents --title "$(TITLE)" --output corriges-all $(ALL)
