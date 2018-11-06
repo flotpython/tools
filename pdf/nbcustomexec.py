@@ -196,7 +196,7 @@ def main():
                         help="List notebook names as they are taken care of")
     parser.add_argument("-e", "--exec-dir", default=".",
                         help="Directory to execute in")
-    parser.add_argument("-o", "--output-dir", default="executing",
+    parser.add_argument("-d", "--output-dir", default="work",
                         help="Directory to store notebooks in")
     parser.add_argument("notebooks", nargs='+')
 

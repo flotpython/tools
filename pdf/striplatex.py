@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
+import sys
 import re
-from pathlib import Path
 from argparse import (ArgumentParser, ArgumentDefaultsHelpFormatter)
 
 # this is where we put boxes around code cells
@@ -35,33 +35,25 @@ replacements = [
      '\n\\\\end{Verbatim}'),
  ]
 
-def strip_latex(in_path, out_name=None):
+def strip_latex(in_file, out_file):
 
-    in_path = Path(in_path)
+    ignoring = True
+    buffer = ""
 
-    if out_name is None:
-        out_path = in_path + ".strip"
-    else:
-        out_path = Path(out_name)
-
-    with in_path.open() as in_file:
-
-        ignoring = True
-        buffer = ""
-
-        for line in in_file:
-            if r'\begin{document}' in line:
-                ignoring = False
-                continue
-            if r'\end{document}' in line:
-                ignoring = True
-                continue
-            if r'\maketitle' in line:
-                continue
-            if r'Licence CC BY-NC-ND' in line:
-                continue
-            if not ignoring:
-                buffer += line
+    for line in in_file:
+        if r'\begin{document}' in line:
+            ignoring = False
+            buffer += r'%%%\begin{document}' + '\n'
+            continue
+        if r'\end{document}' in line:
+            ignoring = True
+            continue
+        if r'\maketitle' in line:
+            continue
+        if r'Licence CC BY-NC-ND' in line:
+            continue
+        if not ignoring:
+            buffer += line
 
     # apply replacements
     for mode, before, after in replacements:
@@ -72,26 +64,15 @@ def strip_latex(in_path, out_name=None):
         else:
             print(f'Unknown mode {mode} in replacements')
 
-    with out_path.open('w') as out_file:
-        out_file.write(buffer)
-    print(f"(over)wrote {out_path}")
+    out_file.write(buffer)
 
 
 def main():
-    parser = ArgumentParser()
-    parser.add_argument("-d", "--directory", default=None,
-                        help="Store stripped tex files in this directory")
-    parser.add_argument("tex_files", nargs='+')
-
+    parser = ArgumentParser(usage="redirect stdin and stdout as appropriate")
     args = parser.parse_args()
 
-    for arg in args.tex_files:
-        if args.directory:
-            out = Path(args.directory) / Path(arg).name
-        else:
-            out = None
-        strip_latex(arg, out)
-    return 0
+    strip_latex(sys.stdin, sys.stdout)
 
 if __name__ == '__main__':
     main()
+    exit(0)

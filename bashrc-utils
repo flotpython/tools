@@ -1,0 +1,147 @@
+##########
+# only define if not yet present
+[ -z "$COURSEDIR" ] && COURSEDIR=$HOME/git/flotpython-course/
+[ -z "$TOOLSDIR" ] && TOOLSDIR=$HOME/git/flotpython-tools/
+
+# where to store computed stuff like executed notebooks and tex conversions
+PDFWORKDIR=$TOOLSDIR/pdf/work
+
+###
+function notebooks() {
+    (cd $COURSEDIR; git ls-files w?/w*-[cx]*.ipynb)
+}
+
+function notebook-names() {
+    notebooks | sed -e 's|w[0-9]/||'
+}
+
+function notebooks-week() {
+    local week=$1
+    (cd $COURSEDIR; git ls-files w${week}/w*-[cx]*.ipynb)
+}
+
+########## spot notbeooks based on a text fragment
+
+function search() {
+    local nb_files=$(notebooks | xargs grep -l "$@" | wc -l)
+    nb_files=$(echo $nb_files)
+    case "$nb_files" in
+        1)
+            singlefile=$(notebooks | xargs grep -l "$@")
+            echo $singlefile
+            ;;
+        0)
+            echo "NO MATCH found with" "$@"
+            ;;
+        *)
+            echo "MULTI $nb_matches MATCHES"
+            notebooks | xargs grep "$@"
+            ;;
+    esac
+
+}
+
+
+function edit() {
+    local buffer="/tmp/$$"
+    search "$@" > $buffer
+    grep -q MATCH $buffer && { cat $buffer; rm $buffer; return; }
+    local file=$(cat $buffer)
+            rm $buffer
+    echo Opening $file
+    macnb-open $file
+}
+
+########## pdf generation
+
+# run step 1 (nbcustomexec) lazily
+# execute unless a .ipynb exists in work/ and is more recent than notebook
+
+function execute-all() {
+    if [[ -z "$@" ]]; then
+        focus=$(notebooks)
+    else
+        focus="$@"
+    fi
+    mkdir -p work
+    for symlink in data media; do
+        ln -sf $COURSEDIR/$symlink work
+    done
+    for nb in $focus; do
+        local fullnb=$COURSEDIR/$nb
+        local stem=$(basename $nb .ipynb)
+        executed="$PDFWORKDIR/$stem.ipynb"
+        [ $executed -nt $fullnb ] && echo $executed OK || nbcustomexec.py -e $PDFWORKDIR -d $PDFWORKDIR -v $fullnb || {
+            echo failure with $target -- exiting; rm -f $executed; return 1
+        }
+    done
+}
+
+
+# run step 2 on one entry unconditionally
+# we can't pipe nbconvert to stdout b/c it prevents it
+# from storing figure files and other artefacts
+function convert-one() {
+    local executed=$(basename $1); shift
+    local stem=$(basename $executed .ipynb)
+    local tex=$stem.tex
+    local textmp=$stem.tmp.tex; shift
+    echo jupyter nbconvert --to latex $executed
+    (cd $PDFWORKDIR; \
+     jupyter nbconvert --to latex $executed \
+     && $TOOLSDIR/pdf/striplatex.py < $tex > $tex.tmp \
+     && mv $tex.tmp $tex \
+     || { echo failure with target $tex -- exiting; rm -f $tex; return 1; } \
+    )
+}
+
+
+# run step2 (nbconvert --to latex) lazily
+# if a .tex file exists in executing/ it is deemed OK
+function convert-all() {
+    if [[ -z "$@" ]]; then
+        focus=$(notebook-names)
+    else
+        focus="$@"
+    fi
+    for name in $focus; do
+        local stem=$(basename $name .ipynb)
+        local executed=$PDFWORKDIR/$stem.ipynb
+        local tex=$PDFWORKDIR/$stem.tex
+        [ $tex -nt $executed ] && echo $tex OK || convert-one $executed
+    done
+}
+
+
+# run latex
+# NOTE: this must be done in the work/ directory
+function latex-all() {
+    (cd $PDFWORKDIR;
+     ln -sf ../Python.tex;
+     xelatex Python;
+     )
+}
+
+# the full monty
+function pdf-all() {
+    upto=$1; shift
+    [ -z "$upto" ] && upto=9
+    # reload to be on the safe side
+    source $TOOLSDIR/bashrc-utils
+    # that's where it should go
+    cd $TOOLSDIR/pdf
+    execute-all
+    convert-all
+    #
+    for week in $(seq $upto); do
+        scopecontents.py -f $week -t $week
+        for i in 1 2; do latex-all; done
+        mv work/Python.pdf Python-w${week}.pdf
+
+        [ $week == 1 ] && continue
+        scopecontents.py -f 1 -t $week
+        for i in 1 3; do latex-all; done
+        mv work/Python.pdf Python-w1-to-w${week}.pdf
+    done
+
+}
