@@ -1,126 +1,92 @@
 # -*- coding: utf-8 -*-
 
-COURSEDIR = ../../flotpython-course
-
-TOOL = corriges.py
-
 all: everything
 
-map: .FORCE
-	rm -f exomap nbmap; make exomap nbmap
+COURSEDIR = ../../flotpython-course
 
-exomap:
-	map.sh exo $(COURSEDIR) > $@
+TOOL = runcorriges.py
 
-nbmap:
-	map.sh nb $(COURSEDIR) > $@
-
-.FORCE:
-
-n2 = regexp_pythonid regexp_agenda regexp_phone regexp_url \
-     exo_label exo_inconnue exo_laccess exo_divisible exo_wc exo_morceaux \
-	 exo_liste_p exo_carre
-n3 = exo_comptage exo_surgery  exo_graph_dict exo_marine_dict \
-     exo_read_set exo_marine_set cls_fifo
-n4 = exo_dispatch exo_libelle exo_pgcd exo_taxes exo_distance exo_numbers
-n5 = exo_multi_tri exo_multi_tri_reverse \
-     exo_doubler_premier exo_doubler_premier_kwds \
-     exo_compare_all exo_compare_args \
-     exo_aplatir exo_alternat exo_intersect \
-     exo_produit_scalaire exo_decode_zen
-# w6 n'a que l'exercice shipdict; faire 'make code' pour produire le corrigé
-n7 = exo_stairs
-
-# dans w6-s2 et w6-s4 resp.
-others = exo_rpcproxy shipdict
-
-define pys
-$(foreach name, $(1), $(name).py)
+TITLE = MOOC Python 3;Session 2018;Tous les corrigés
+define title
+MOOC Python 3;Session 2018;Corrigés de la semaine $(1)
 endef
-
-w2 = $(call pys, $(n2))
-w3 = $(call pys, $(n3))
-w4 = $(call pys, $(n4))
-w5 = $(call pys, $(n5))
-w6_code  = $(COURSEDIR)/data/shipdict.py
-w7 = $(call pys, $(n7))
 
 WEEKS = 2 3 4 5 7
 
-define find_source
-$(wildcard $(COURSEDIR)/modules/corrections/$(1) $(COURSEDIR)/data/$(1))
-endef
+##########
+# Semaine 6:
+# un seul gros exo est proposé; on donne un morceau de code
+# et il faut écrire le module manquant
+# la soluce complète est dans data/shipdict.py
+# qui contient pour des raisons historiques des balises BEG/END
+W6_FILES = $(COURSEDIR)/data/shipdict.py
 
-define week_latex_sources
-$(foreach python,$(w$(1)_latex), $(call find_source,$(python)))
-endef
+w6: corriges-w6.tex
 
-define week_text_sources
-$(foreach python,$(w$(1)_text), $(call find_source,$(python)))
-endef
+corriges-w6.tex:
+	$(TOOL) --title "$(call title, 6)" --output corriges-w6 $(W6_FILES)
 
-SOURCES = $(foreach week,$(WEEKS),$(call week_latex_sources,$(week)))
+pdf:: corriges-w6.pdf
 
-everything: $(foreach week, $(WEEKS), corriges-w$(week).tex corriges-w$(week).txt) corriges.tex corriges.txt code
+##########
+# the default for runcorriges is to produce both a .txt and .tex
+WTEXS =  $(foreach week, $(WEEKS), corriges-w$(week).tex)
 
-corriges.tex corriges.txt: $(SOURCES) $(TOOL) exomap
-	$(TOOL) --output corriges --title "MOOC Python 3;Session 2018;Tous les corrigés" --contents $(SOURCES)
-corriges.pdf: corriges.tex
-	pdflatex corriges.tex
-superclean::
-	rm -f corriges.* exomap nbmap
-pdf:: corriges.pdf
+everything: corriges-all.tex $(WTEXS)
+
+corriges-all.tex: .FORCE
+	$(TOOL) --contents --title "$(TITLE)" --output corriges-all $(WEEKS)
+
+pdf:: corriges-all.pdf
 
 
-define week_values
-w$(1)_text = $(or $(w$(1)_text),$(w$(1)))
-w$(1)_latex = $(or $(w$(1)_latex),$(w$(1)))
-endef
-
-$(foreach week, $(WEEKS), $(eval $(call week_values,$(week))))
-
-define code_target
-corriges-w$(3)-$(2): $(1)
-	egrep -v '@BEG|@END' $(1) > corriges-w$(3)-$(2)
-	chmod +x corriges-w$(3)-$(2)
-
-code:: corriges-w$(3)-$(2)
-
-code-clean::
-	rm -f corriges-w$(3)-$(2)
-endef
-
-superclean:: code-clean
-
+###### how to redo a week
 define week_target
-corriges-w$(1).tex: $(call week_latex_sources,$(1)) $(TOOL) exomap
-	$(TOOL) --latex --output corriges-w$(1) --title "MOOC Python 3;Session 2018;Corrigés de la semaine $(1)" $(call week_latex_sources,$(1))
+w$(1): corriges-w$(1).tex
+
+corriges-w$(1).tex: .FORCE
+	$(TOOL) --output corriges-w$(1) \
+	    --title "MOOC Python 3;Session 2018;Corrigés de la semaine $(1)" $(1)
 
 corriges-w$(1).pdf: corriges-w$(1).tex
 	pdflatex corriges-w$(1).tex
 
-corriges-w$(1).txt: $(call week_text_sources,$(1)) $(TOOL) exomap
-	$(TOOL) -T -o corriges-w$(1) -t "Corrigés de la semaine $(1)" $(call week_text_sources,$(1))
-
-superclean::
-	rm -f corriges-w$(1).*
-
 pdf:: corriges-w$(1).pdf
-
-$(foreach code,$(w$(1)_code),$(eval $(call code_target,$(code),$(notdir $(code)),$(1))))
 endef
 
 $(foreach week, $(WEEKS), $(eval $(call week_target,$(week))))
 
-.PHONY: all code clean superclean code-clean pdf
+
+########## validation
+# convenience to generate a notebook fragment
+# that can validate all known exos at once
+validation:
+	$(TOOL) --notebook -o $(COURSEDIR)/modules/corrections/validation $(WEEKS)
+
+##### boilerplate
+
+%.pdf: %.tex
+	pdflatex $*
+
+.PHONY: all clean superclean pdf
 
 clean:
-	rm -f *.{aux,log,tex,toc,py,out} exomap nbmap
+	rm -f *.{aux,log,tex,toc,out}
+
+superclean:
+	rm -rf corriges-w*
 
 index:
 	for tex in *.tex; do pdflatex $$tex; done
 
-# convenience to generate a notebook fragment
-# that can validate all known exos at once
-validation:
-	$(TOOL) -N -o $(COURSEDIR)/modules/corrections/validation $(SOURCES)
+.FORCE:
+
+#################### convenience, for debugging only
+# make +foo : prints the value of $(foo)
+# make ++foo : idem but verbose, i.e. foo=$(foo)
+++%: varname=$(subst +,,$@)
+++%:
+	@echo "$(varname)=$($(varname))"
++%: varname=$(subst +,,$@)
++%:
+	@echo "$($(varname))"

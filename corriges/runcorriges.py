@@ -1,39 +1,91 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os.path
+# pylint: disable=c0111
+
 import re
+from pathlib import Path
+from collections import OrderedDict
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
+# generate a validation notebook
 import nbformat
-from nbformat.notebooknode import NotebookNode
+
+DEBUG = False
+
+########## helpers / filesystem
+
+DEFAULT_COURSEDIR = "../../flotpython-course"
+
+def check_coursedir(coursedir):
+    if not (coursedir / "w1").exists():
+        print(f"{coursedir} not a course dir")
+        exit(1)
 
 
-import re
+# where to find files like exo_carre.py, relative to COURSEDIR
+SOLUTION_PATHS = ["modules/corrections", "data"]
 
-class Map(dict):
+def locate_stem(coursedir, name):
+    coursedir = Path(coursedir)
+    stem = Path(name).stem
+    for relpath in SOLUTION_PATHS:
+        for filename in [stem, f"{stem}.py"]:
+            candidate = coursedir / relpath / filename
+            if candidate.exists():
+                return candidate
+    return None
+
+
+class Exomap(OrderedDict):
     """
     An object that keeps track of the association
-    name -> week x sequence
-
-    see exomap.sh
+    name -> week x sequence x source_stem
     """
+    def __init__(self, coursedir):
+        self.coursedir = coursedir
+        self._scan()
+        OrderedDict.__init__(self)
 
-    pattern = re.compile("w.*/w(.)-s(.)-.* import exo_(\w+)")
+    def __repr__(self):
+        return "\n".join(f"{week}-{seq}-{exo}-{source}"
+                         for exo, (week, seq, source) in self.items())
 
-    def __init__(self, filename="exomap"):
-        with open(filename) as f:
-            for lineno, line in enumerate(f, 1):
-                m = Map.pattern.match(line)
-                if not m:
-                    print(f"WARNING: could not understand line {line}")
-                    continue
-                week, sequence, name = m.groups()
-                self[name] = week, sequence
+    fn_pat = re.compile(r'w(?P<week>[0-9]+)-s(?P<seq>[0-9]+).*')
+    ln_pat = re.compile(r'\s.*"from\s+corrections\.(?P<source>\w+).*import\s+exo_(?P<exo>\w+)')
+
+    def _scan(self):
+        for notebook in self.coursedir.glob("w?/w*-x*.ipynb"):
+            match1 = self.fn_pat.match(notebook.stem)
+            if not match1:
+                print(f"something wrong with {notebook.stem}")
+                exit(1)
+            week, seq = match1.groups()
+            for line in notebook.open():
+                match2 = self.ln_pat.match(line)
+                if match2:
+                    source, exo = match2.groups()
+                    self[exo] = week, seq, source
+                elif 'import' in line and 'from' in line:
+                    if DEBUG:
+                        print(f"Warning: ignoring potential exo import\n{line}",
+                              end="")
 
 
-class Solution:
+    def all_stems(self, *weeks):
+        already = set()
+        weeks = set(str(w) for w in weeks)
+        for _, (week, _, source) in self.items():
+            if week not in weeks:
+                continue
+            if source in already:
+                continue
+            already.add(source)
+            yield source
+
+
+class Solution:                                         # pylint: disable=r0902
     """
     an object that describes one occurrence of a function solution
     provided in the corrections/ package
@@ -44,15 +96,15 @@ class Solution:
     in general the first one is used for generating validation stuff
     """
 
-    def __init__(self,
+    def __init__(self,                                  # pylint: disable=r0913
                  # mandatory
-                 filename, week, sequence, name,
+                 path, week, sequence, name,
                  # additional tags supported on the @BEG@ line
                  more=None, latex_size='small',
                  no_validation=None, no_example=None,
                  ):
-        self.path = filename
-        self.filename = os.path.basename(filename).replace('.py', '')
+        self.path = path
+        self.filename = path.stem
         self.is_class = self.filename.find('cls') == 0
         self.week = week
         self.sequence = sequence
@@ -110,7 +162,8 @@ label=%(name)s%(more)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{S
         latex_size = self.latex_size
         code = self.code
         more = r" {{\small ({})}}".format(self.more) if self.more else ""
-        return self.latex_format % locals()
+        return self.latex_format % dict(name=name, week=week, sequence=sequence,
+                                        latex_size=latex_size, code=code, more=more)
 
     # the validation notebook
     def add_validation(self, notebook):
@@ -127,7 +180,7 @@ label=%(name)s%(more)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{S
 
         # some exercices are so twisted that we can't do anything for them here
         if self.no_validation:
-            for i in range(2):
+            for _ in range(2):
                 notebook.add_text_cell("*****")
             cell = Cell()
             cell.add_line(
@@ -153,11 +206,11 @@ label=%(name)s%(more)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{S
         cell.record()
         cell = Cell()
         cell.add_line(f"# dummy solution - should be KO")
-        ko = f"{solution}_ko"
-        cell.add_line(f"""if not hasattr({module}, '{ko}'):
-    print("{ko} not found")
+        broken = f"{solution}_ko"
+        cell.add_line(f"""if not hasattr({module}, '{broken}'):
+    print("{broken} not found")
 else:
-    IPython.display.display({exo}.correction({module}.{ko}))""")
+    IPython.display.display({exo}.correction({module}.{broken}))""")
 
         cell.record()
 
@@ -182,11 +235,11 @@ else:
 # as of dec. 11 2014 all files are UTF-8 and that's it
 
 
-class Source:
+class Source:                                           # pylint: disable=r0903
 
-    def __init__(self, filename, map):
-        self.filename = filename
-        self.map = map
+    def __init__(self, path, exomap):
+        self.path = path
+        self.exomap = exomap
 
     beg_matcher = re.compile(
         r"\A. @BEG@(?P<keywords>(\s+[a-z_]+=[a-z_A-Z0-9-]+)+)\s*\Z"
@@ -198,7 +251,7 @@ class Source:
         r"\Aw(?P<week>[0-9]+)s(?P<sequence>[0-9]+)_"
     )
 
-    def parse(self):
+    def parse(self):                            # pylint: disable=r0912, r0914
         """
         return a tuple of
         * list of all Solution objects
@@ -210,15 +263,8 @@ class Source:
         solutions = []
         functions = []
         names = []
-        basename = os.path.basename(self.filename)
-        match = self.filename_matcher.match(basename)
-        if match:
-            context_from_filename = match.groupdict()
-        else:
-            context_from_filename = {}
-        with open(self.filename) as input:
-            for lineno, line in enumerate(input):
-                lineno += 1
+        with self.path.open() as feed:
+            for lineno, line in enumerate(feed, 1):
                 # remove EOL for convenience
                 if line[-1] == "\n":
                     line = line[:-1]
@@ -228,31 +274,33 @@ class Source:
                     assignments = begin.group('keywords').split()
                     keywords = {}
                     for assignment in assignments:
-                        k, v = assignment.split('=')
-                        keywords[k] = v
+                        key, value = assignment.split('=')
+                        keywords[key] = value
                     if 'name' not in keywords:
-                        print(f"{self.filename}:{lineno} 'name' missing keyword")
+                        print(f"{self.path}:{lineno} 'name' missing keyword")
                         continue
                     name = keywords['name']
                     if 'week' in keywords and 'sequence' in keywords:
-                        print(f"{self.filename}:{lineno} using explicit week or sequence")
-                        self.map[name] = keywords['week'], keywords['sequence']
+                        print(f"{self.path}:{lineno} using explicit week and sequence")
+                        self.exomap[name] = (keywords['week'],
+                                             keywords['sequence'],
+                                             self.path.stem)
                     else:
-                        week, sequence = self.map.get(name, (None, None))
+                        week, sequence, _ = self.exomap.get(name, (None, None, None))
                         if not week or not sequence:
-                            print(f"{self.filename}:{lineno} cannot spot week or sequence")
+                            print(f"{self.path}:{lineno} cannot spot week or sequence")
                             continue
                         keywords['week'] = week
                         keywords['sequence'] = sequence
                     try:
-                        solution = Solution(filename=self.filename, **keywords)
-                    except:
+                        solution = Solution(path=self.path, **keywords)
+                    except Exception:                   # pylint: disable=w0703
                         import traceback
                         traceback.print_exc()
-                        print(f"{self.filename}:{lineno}: ERROR (ignored): {line}")
+                        print(f"{self.path}:{lineno}: ERROR (ignored): {line}")
                 elif end:
-                    if solution == None:
-                        print(f"{self.filename}:{lineno} - Unexpected @END@ - ignored\n{line}")
+                    if solution is None:
+                        print(f"{self.path}:{lineno} - Unexpected @END@ - ignored\n{line}")
                     else:
                         # memorize current solution
                         solutions.append(solution)
@@ -262,7 +310,7 @@ class Source:
                             functions.append(solution)
                         solution = None
                 elif '@BEG@' in line or '@END@' in line:
-                    print(f"{self.filename}:{lineno} Warning - misplaced @BEG|END@ - ignored\n{line}")
+                    print(f"{self.path}:{lineno} Warning - misplaced @BEG|END@ - ignored\n{line}")
                     continue
                 elif solution:
                     solution.add_code_line(line)
@@ -310,12 +358,12 @@ class Latex:
 \addcontentsline{{toc}}{{section}}{{Semaine {}}}
 """
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self, path):
+        self.path = path
 
     def write(self, solutions, title_list, contents):
         week = None
-        with open(self.filename, 'w') as output:
+        with self.path.open('w') as output:
             title_tex = " \\\\ \\mbox{} \\\\ ".join(title_list)
             output.write(Latex.header % (dict(title=title_tex)))
             if contents:
@@ -326,19 +374,19 @@ class Latex:
                     output.write(self.week_format.format(week))
                 output.write(solution.latex())
             output.write(Latex.footer)
-        print(f"{self.filename} (over)written")
+        print(f"{self.path} (over)written")
 
     @staticmethod
-    def escape(str):
-        return str.replace("_", r"\_")
+    def escape(string):
+        return string.replace("_", r"\_")
 
 ####################
 
 
-class Text:
+class Text:                                             # pylint: disable=r0903
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self, path):
+        self.path = path
 
     header_format = """# -*- coding: utf-8 -*-
 ############################################################
@@ -349,29 +397,31 @@ class Text:
 """
 
     def write(self, solutions, title_list):
-        with open(self.filename, 'w') as output:
+        with self.path.open('w') as output:
             for title in title_list:
                 output.write(self.header_format.format(title=title))
             for solution in solutions:
                 output.write(solution.text())
-        print(f"{self.filename} (over)written")
+        print(f"{self.path} (over)written")
 
 ####################
 
 
 class Notebook:
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self, path):
+        self.path = path
         self.notebook = nbformat.v4.new_notebook()
         self.add_code_cell("import IPython")
         self.add_code_cell("%load_ext autoreload\n%autoreload 2")
 
-    def _normalize(self, contents):
+    @staticmethod
+    def _normalize(contents):
         if isinstance(contents, str):
             return contents
-        elif isinstance(contents, list):
+        if isinstance(contents, list):
             return "\n".join(contents)
+        return ""
 
     def add_text_cell(self, contents):
         self.notebook['cells'].append(
@@ -391,14 +441,14 @@ class Notebook:
             function.add_validation(self)
 
         # JSON won't like an extra comma
-        with open(self.filename, 'w') as output:
+        with self.path.open('w') as output:
             nbformat.write(self.notebook, output)
-        print(f"{self.filename} (over)written")
+        print(f"{self.path} (over)written")
 
 ##########
 
 
-class Stats:
+class Stats: # pylint: disable=r0903
 
     def __init__(self, solutions, functions):
         self.solutions = solutions
@@ -406,21 +456,24 @@ class Stats:
 
     def print_count(self, verbose=False):
         skipped = [f for f in self.functions if f.no_validation]
-        ns = len(self.solutions)
-        nf = len(self.functions)
-        nnv = len(skipped)
-        print(f"We have a total of {ns} solutions for {nf} different exos  - {nnv} not validated:")
-        for f in skipped:
-            print(f"skipped {f.name} - w{f.week}s{f.sequence}")
+        nbsols = len(self.solutions)
+        nbfuns = len(self.functions)
+        nb_non_val = len(skipped)
+        print(f"We have a total of {nbsols} solutions for {nbfuns} different exos "
+              f" - {nb_non_val} not validated:")
+        for fun in skipped:
+            print(f"skipped {fun.name} - w{fun.week}s{fun.sequence}")
         if verbose:
-            for function in self.functions:
-                print(function)
+            for fun in self.functions:
+                print(fun)
 
 ####################
 
 
-def main():
-    parser = ArgumentParser()
+def main():                                      # pylint: disable=r0914, r0915
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-d", "--coursedir", default=DEFAULT_COURSEDIR,
+                        help="The actual course directory")
     parser.add_argument("-o", "--output", default=None)
     parser.add_argument(
         "-t", "--title", default="Donnez un titre avec --title")
@@ -428,15 +481,36 @@ def main():
     parser.add_argument("-L", "--latex", action='store_true', default=False)
     parser.add_argument("-N", "--notebook", action='store_true', default=False)
     parser.add_argument("-T", "--text", action='store_true', default=False)
-    parser.add_argument("files", nargs='+')
+    parser.add_argument("weeks_or_files", nargs='+')
     args = parser.parse_args()
 
-    map = Map()
+    # args that are numeric are considered weeks
+    weeks, files = [], []
+    for arg in args.weeks_or_files:
+        if re.match("[0-9]+", arg):
+            weeks.append(arg)
+        else:
+            files.append(arg)
+
+    coursedir = Path(args.coursedir)
+    check_coursedir(coursedir)
+
+    exomap = Exomap(coursedir)
+    # always store the exo map so we can detect any mishaps
+    with Path("exomap.check").open('w') as output:
+        output.write(str(exomap) + "\n")
     solutions, functions = [], []
-    for filename in args.files:
-        ss, fs = Source(filename, map).parse()
-        solutions += ss
-        functions += fs
+
+    input_paths = []
+    for stem in exomap.all_stems(*weeks):
+        path = locate_stem(coursedir, stem)
+        input_paths.append(path)
+    for file in files:
+        input_paths.append(Path(file))
+    for path in input_paths:
+        sols, funs = Source(path, exomap).parse()
+        solutions += sols
+        functions += funs
 
     if args.latex:
         do_latex = True
@@ -456,9 +530,9 @@ def main():
         do_notebook = False
 
     output = args.output if args.output else "corriges"
-    texoutput = f"{output}.tex"
-    txtoutput = f"{output}.txt"
-    nboutput = f"{output}.ipynb"
+    texoutput = Path(f"{output}.tex")
+    txtoutput = Path(f"{output}.txt")
+    nboutput = Path(f"{output}.ipynb")
     title_list = args.title.split(";")
     if do_latex:
         Latex(texoutput).write(
