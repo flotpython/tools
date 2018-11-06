@@ -484,29 +484,26 @@ def main():                                      # pylint: disable=r0914, r0915
     parser.add_argument("weeks_or_files", nargs='+')
     args = parser.parse_args()
 
-    # args that are numeric are considered weeks
-    weeks, files = [], []
-    for arg in args.weeks_or_files:
-        if re.match("[0-9]+", arg):
-            weeks.append(arg)
-        else:
-            files.append(arg)
-
     coursedir = Path(args.coursedir)
     check_coursedir(coursedir)
-
     exomap = Exomap(coursedir)
     # always store the exo map so we can detect any mishaps
     with Path("exomap.check").open('w') as output:
         output.write(str(exomap) + "\n")
+
     solutions, functions = [], []
 
+    # consolidate actual input files
+    # args that are numeric are considered weeks
     input_paths = []
-    for stem in exomap.all_stems(*weeks):
-        path = locate_stem(coursedir, stem)
-        input_paths.append(path)
-    for file in files:
-        input_paths.append(Path(file))
+    for arg in args.weeks_or_files:
+        if re.match("[0-9]+", arg):
+            for stem in exomap.all_stems(arg):
+                path = locate_stem(coursedir, stem)
+                input_paths.append(path)
+        else:
+            input_paths.append(Path(arg))
+
     for path in input_paths:
         sols, funs = Source(path, exomap).parse()
         solutions += sols

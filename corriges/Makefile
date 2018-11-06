@@ -12,6 +12,8 @@ MOOC Python 3;Session 2018;Corrigés de la semaine $(1)
 endef
 
 WEEKS = 2 3 4 5 7
+W6_FILES = $(COURSEDIR)/data/shipdict.py
+ALL = 2 3 4 5 $(W6_FILES) 7
 
 ##########
 # Semaine 6:
@@ -19,7 +21,6 @@ WEEKS = 2 3 4 5 7
 # et il faut écrire le module manquant
 # la soluce complète est dans data/shipdict.py
 # qui contient pour des raisons historiques des balises BEG/END
-W6_FILES = $(COURSEDIR)/data/shipdict.py
 
 w6: corriges-w6.tex
 
@@ -35,9 +36,13 @@ WTEXS =  $(foreach week, $(WEEKS), corriges-w$(week).tex)
 everything: corriges-all.tex $(WTEXS)
 
 corriges-all.tex: .FORCE
-	$(TOOL) --contents --title "$(TITLE)" --output corriges-all $(WEEKS)
+	$(TOOL) --contents --title "$(TITLE)" --output corriges-all $(ALL)
 
 pdf:: corriges-all.pdf
+
+index:
+	pdflatex corriges-all
+
 
 
 ###### how to redo a week
@@ -75,9 +80,6 @@ clean:
 
 superclean:
 	rm -rf corriges-w*
-
-index:
-	for tex in *.tex; do pdflatex $$tex; done
 
 .FORCE:
 
