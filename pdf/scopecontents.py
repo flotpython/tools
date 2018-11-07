@@ -11,7 +11,7 @@ def read_title(target_week):
     with open("ChapterNames.txt") as feed:
         for line in feed:
             week, title = line.split(':')
-            iweek = int(week)
+            iweek = week.strip()
             if iweek == target_week:
                 return title.strip()
     return f"Titre pas trouvé pour semaine {target_week}"
@@ -61,12 +61,15 @@ def main():
 
     args = parser.parse_args()
 
+    # can either give a list of weeks, or specify a range
+    # but not both
     if args.weeks:
         weekrange = args.weeks
         first_chapter = args.weeks[0]
     else:
-        weekrange = range(args.w_from, args.w_to+1)
+        weekrange = [str(w) for w in range(args.w_from, args.w_to+1)]
         first_chapter = args.w_from
+        
     write_output(weekrange, first_chapter, args.output, args.workdir)
 
 

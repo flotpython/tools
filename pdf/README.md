@@ -168,13 +168,20 @@ latex-all
 
 Run several times (twice should be enough, 3 times to be safe) - as always, to get cross references - like table of contents - right.
 
+#### shortcut
+
+```
+redo-all
+```
+
+just does `execute-all` + `convert-all` + `latex-all`
 
 #### the full monty
 
 In principle, producing all pdf's up to, say, week 6, can be achieved with
 
 ```
-pdf-all 6
+weeks-all 6
 ```
 which would recompute the following files - stored in `pdf/` and not in `work/`:
 

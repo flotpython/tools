@@ -89,7 +89,7 @@ function convert-one() {
     echo jupyter nbconvert --to latex $executed
     (cd $PDFWORKDIR; \
      jupyter nbconvert --to latex $executed \
-     && $TOOLSDIR/pdf/striplatex.py < $tex > $tex.tmp \
+     && $TOOLSDIR/pdf/striplatex.py --name $stem < $tex > $tex.tmp \
      && mv $tex.tmp $tex \
      || { echo failure with target $tex -- exiting; rm -f $tex; return 1; } \
     )
@@ -122,8 +122,14 @@ function latex-all() {
      )
 }
 
+function redo-all() {
+    execute-all
+    convert-all
+    latex-all
+}
+
 # the full monty
-function pdf-all() {
+function weeks-all() {
     upto=$1; shift
     [ -z "$upto" ] && upto=9
     # reload to be on the safe side
