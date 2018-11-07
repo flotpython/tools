@@ -31,6 +31,9 @@
     \usepackage{xcolor} % Allow colors to be defined
     \usepackage{enumerate} % Needed for markdown enumerations to work
     \usepackage{geometry} % Used to adjust the document margins
+    % Slightly bigger margins than the latex defaults
+    \geometry{verbose,tmargin=1in,bmargin=1in,lmargin=0.8in,rmargin=0.8in}
+
     \usepackage{amsmath} % Equations
     \usepackage{amssymb} % Equations
     \usepackage{textcomp} % defines textquotesingle
@@ -55,7 +58,6 @@
     \usepackage[inline]{enumitem} % IRkernel/repr support (it uses the enumerate* environment)
     \usepackage[normalem]{ulem} % ulem is needed to support strikethroughs (\sout)
                                 % normalem makes italics be italics, not underlines
-
 
 % Modification subparagraph
 
@@ -139,7 +141,6 @@
 
    \usepackage[Lenny]{fncychap}
    \DeclareTextSymbol{\degre}{T1}{6}
-
 
     % Pygments definitions
 
@@ -254,9 +255,6 @@
       linkcolor=linkcolor,
       citecolor=citecolor,
       }
-    % Slightly bigger margins than the latex defaults
-
-    \geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
 
 
 %%% local additions for striplatex and others customizations
@@ -271,6 +269,8 @@
 \definecolor{asisframecolor}{rgb}{0.5, 0.5, 0.5}
 
 \newcommand{\notebookname}{notebookname-should-be-redefined}
+\newcommand{\notebookweek}{notebookweek-should-be-redefined}
+\newcommand{\notebookseq}{notebookseq-should-be-redefined}
 
 \setlength{\parskip}{1em}
 
@@ -287,7 +287,23 @@
 
 \titlespacing*{\subparagraph}{\parindent}{3.25ex plus 1ex minus .2ex}{.75ex plus .1ex}
 
-    \begin{document}
+\usepackage{fancyhdr}
+%\fancyhead{} % clear all header fields
+%\fancyhead[RO,LE]{\textbf{The performance of new graduates}}
+%\fancyfoot{} % clear all footer fields
+\fancypagestyle{moocpagestyle}{%  the preset of fancyhdr
+    \fancyhf{} % clear all header and footer fields
+    \lhead{MOOC Python 3}
+    \chead{}
+    \rhead{Semaine \notebookweek, Séquence \notebookseq}
+    \lfoot{}
+    \cfoot{\textbf{\thepage}}
+    \rfoot{}
+    \renewcommand{\headrulewidth}{0.4pt}
+    \renewcommand{\footrulewidth}{0pt}}
+
+
+\begin{document}
 
 
 
@@ -369,6 +385,7 @@ Arnaud \textsc{Legout}
 % like figures and all, stored in notebook_files/ are not found
 
 \pagenumbering{arabic}
+
 \input{contents}
 
 

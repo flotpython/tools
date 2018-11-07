@@ -38,7 +38,7 @@ def write_output(weekrange, first_chapter, outputname, workdir):
                 output.write(rf"\setcounter{{chapter}}{{{int(first_chapter)-1}}}" "\n")
             output.write("\n" rf"\chapter{{{title}}}" "\n")
             if index == 0:
-                output.write(r"\pagestyle{plain}" "\n")
+                output.write(r"\pagestyle{moocpagestyle}" "\n")
                 output.write(r"\setcounter{page}{1}" "\n")
 
             # les notebooks du chapitre
@@ -69,7 +69,7 @@ def main():
     else:
         weekrange = [str(w) for w in range(args.w_from, args.w_to+1)]
         first_chapter = args.w_from
-        
+
     write_output(weekrange, first_chapter, args.output, args.workdir)
 
 

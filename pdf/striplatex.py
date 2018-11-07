@@ -47,12 +47,17 @@ def strip_latex(in_file, out_file, nbname):
     ignoring = True
     buffer = ""
 
+    pattern = re.compile(r'w(?P<week>[0-9]+)-s(?P<seq>[0-9]+)')
+    week, seq = pattern.match(nbname).groups()
+
     for line in in_file:
         if r'\begin{document}' in line:
             ignoring = False
             # define name only if we run this for the first time
             if '%%%' not in line:
                 buffer += rf"\renewcommand{{\notebookname}}{{{nbname}}}" + "\n"
+                buffer += rf"\renewcommand{{\notebookweek}}{{{week}}}" + "\n"
+                buffer += rf"\renewcommand{{\notebookseq}}{{{seq}}}" + "\n"
             # for idempotency, i.e. so that we can run this
             # several times with no further changes
             buffer += r'%%%\begin{document}' + '\n'
