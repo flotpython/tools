@@ -57,32 +57,7 @@ issues as we ran into them:
 
 #### Remaining known issues
 
-* **URLs:** Fangh also suggests using proper links when inserting a URL; inserting a URL as-is works in the web, but results in a poor pdf output.
-
-
-* **tables:** Fangh has reported issues with markdown tables; when a specific alignment is selected in the markdown - see below - he reports
-the table being rendered differently on the web and in the latex output.
-
-Specifically he reports that this table:
-
-```
-| Quoi            | Avec quel outil              |
-|:----------------|:-----------------------------|
-| fichier complet | `python3 <fichier>.py`       |
-| ligne à ligne   | `python3` en mode interactif |
-```
-
-should rather read:
-
-```
-| Quoi            | Avec quel outil              |
-|----------------:|-----------------------------:|
-| fichier complet | `python3 <fichier>.py`       |
-| ligne à ligne   | `python3` en mode interactif |
-```
-
-if alignment is to be preserved - note the location of colons `:` in the header
-second line.
+* **URLs:** Fangh suggests using proper links when inserting a URL; inserting a URL as-is works in the web, but results in a poor pdf output.
 
 ## Workflow
 
