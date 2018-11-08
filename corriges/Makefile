@@ -4,7 +4,7 @@ all: everything
 
 COURSEDIR = ../../flotpython-course
 
-TOOL = runcorriges.py
+TOOL = makecorriges.py
 
 TITLE = MOOC Python 3;Session 2018;Tous les corrigés
 define title

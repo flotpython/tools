@@ -166,7 +166,12 @@ label=%(name)s%(more)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{S
                                         latex_size=latex_size, code=code, more=more)
 
     # the validation notebook
-    def add_validation(self, notebook):
+    def add_validation(self, notebook, first):
+        """
+        Parameters:
+          notebook is a Notebook instance
+          first is a boolean, true for the first/main solution of that exo
+        """
 
         class Cell:
             def __init__(self):
@@ -188,31 +193,39 @@ label=%(name)s%(more)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{S
             cell.record()
             return
 
-        notebook.add_text_cell("*****")
         # the usual case
         module = f"corrections.{self.filename}"
+        solution = self.name
         exo = f"corrections.{self.filename}.exo_{self.name}"
-        solution = self.name if not self.is_class else self.name.capitalize()
+        full_solution = solution if first else f"{solution}_{self.more}"
+        if self.is_class:
+            solution = solution.capitalize()
+            full_solution = "".join(x.capitalize()
+                                    for x in full_solution.split('_'))
+        if first:
+            notebook.add_text_cell("*****")
+            cell = Cell()
+            cell.add_line(f"########## exo {self.name} {self.more} ##########")
+            cell.add_line(f"import {module}")
+            if self.no_example is None:
+                cell.add_line(f"{exo}.example()")
+            cell.record()
         cell = Cell()
-        cell.add_line(f"########## exo {self.name} ##########")
-        cell.add_line(f"import {module}")
-        if self.no_example is None:
-            cell.add_line(f"{exo}.example()")
+        cell.add_line("# should be OK")
+        cell.add_line(f"from {module} import {full_solution}")
+        cell.add_line(f"{exo}.correction({full_solution})")
         cell.record()
-        cell = Cell()
-        cell.add_line("# cheating - should be OK")
-        cell.add_line(f"from {module} import {solution}")
-        cell.add_line(f"{exo}.correction({solution})")
-        cell.record()
-        cell = Cell()
-        cell.add_line(f"# dummy solution - should be KO")
-        broken = f"{solution}_ko"
-        cell.add_line(f"""if not hasattr({module}, '{broken}'):
+        if first:
+            cell = Cell()
+            cell.add_line(f"# dummy solution - should be KO")
+            broken = f"{solution}_ko"
+            cell.add_line(
+f"""if not hasattr({module}, '{broken}'):
     print("{broken} not found")
 else:
-    IPython.display.display({exo}.correction({module}.{broken}))""")
-
-        cell.record()
+    IPython.display.display({exo}.correction({module}.{broken}))"""
+            )
+            cell.record()
 
 ########################################
     text_format = r"""
@@ -435,10 +448,17 @@ class Notebook:
                 self._normalize(contents)
             ))
 
-    def write(self, functions):
+    def write(self, solutions):
 
-        for function in functions:
-            function.add_validation(self)
+        # find out which are the first ones
+        # and which are alternate solutions
+
+        seen = set()
+
+        for solution in solutions:
+            first = solution.name not in seen
+            solution.add_validation(self, first=first)
+            seen.add(solution.name)
 
         # JSON won't like an extra comma
         with self.path.open('w') as output:
@@ -537,9 +557,9 @@ def main():                                      # pylint: disable=r0914, r0915
     if do_text:
         Text(txtoutput).write(solutions, title_list=title_list)
     if do_notebook:
-        Notebook(nboutput).write(functions)
-        stats = Stats(solutions, functions)
-        stats.print_count(verbose=False)
+        Notebook(nboutput).write(solutions)
+    stats = Stats(solutions, functions)
+    stats.print_count(verbose=False)
 
 if __name__ == '__main__':
     main()
