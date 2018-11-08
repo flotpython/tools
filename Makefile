@@ -1,13 +1,25 @@
 # -*- coding: utf-8 -*-
 
 # all files in this repo are expected to be utf-8
-# for transcoding, use e.g. 
+# for transcoding, use e.g.
 #     recode ISO-8859-15..UTF-8 <filename>
+
+------
+this file is obsolete, and kept only for future reference
+
+remaining:
+
+	* normalizing quizzes
+	* building a standalone bundle
+	* check if data/ could be just cleared out, at least the cities thingy,
+	  as somewhere here we suggest it was only for defunct miniprojects
+------
+
 
 RSYNC = rsync --exclude .du --exclude .DS_Store
 RSYNC_DEL = $(RSYNC) -av --delete --delete-excluded
 
-all: 
+all:
 .PHONY: all
 
 TOPLEVEL=$(shell pwd)
@@ -21,111 +33,7 @@ NOTEBASES = $(subst .ipynb,,$(NOTEBOOKS))
 # for phony targets
 force:
 
-#################### corriges
-all: corriges
-corriges:
-	$(MAKE) -C corriges
-
-corriges-pdf:
-	$(MAKE) -C corriges pdf
-
-corriges-clean:
-	$(MAKE) -C corriges clean
-CLEAN-TARGETS += corriges-clean
-
-.PHONY: corriges corriges-pdf corriges-clean 
-
-########################################
-# historical note
-# students asked for an alternate format for notebooks
-# (*) at the beginning we went for a PDF approach, generating
-# markdown and then using gitprint
-# this resulted in a lot of approximate - if at all correct - output
-# (*) I then tried to use latex -> pdf, which is better now that
-# we don't use rawnbconvert anymore; result was more reliable,
-# but really not nice to look at - in other words
-# it would require a lot of styling, I'm thinking
-# a complete latex document class to have something decent
-# (*) so finally I came to consider html output as the most
-# reliable + pretty-to-look-at approach
-#
-# as of June 19 2015:
-# * I remove all by-products from git (be it pdf, html or markdown)
-# this was suboptimal as these files can be generated from the rest of the git contents
-# * I remove the make recipes for producing pdf, either based on pdflatex or gitprint
-# let's keep it simple (it's already a mess like this)
-
-########################################
-
-# simple basename
-define sbn
-$(basename $(notdir $(1)))
-endef
-
-define markdown_location
-markdown/$(call sbn,$(1)).md
-endef
-
-define html_location
-html/$(call sbn,$(1)).html
-endef
-
-define ipynb_location
-ipynb/$(call sbn,$(1)).ipynb
-endef
-
-MARKDOWNS = $(foreach notebook,$(NOTEBOOKS),$(call markdown_location,$(notebook)))
-HTMLS	  = $(foreach notebook,$(NOTEBOOKS),$(call html_location,$(notebook)))
-IPYNBS	  = $(foreach notebook,$(NOTEBOOKS),$(call ipynb_location,$(notebook)))
-
-########## how to redo individual stuff
-# when converting to html and markdown, we want to have the cells executed
-export PYTHONPATH=$(CURDIR)/modules
-
-CONVERT = jupyter nbconvert --ExecutePreprocessor.enabled=True --ExecutePreprocessor.allow_errors=True
-
-# apply these rules to all notebooks
-define notebook_rule
-$(call markdown_location,$(1)): $(1)
-	$(CONVERT) --to markdown $(1) --stdout > $(call markdown_location,$(1)) || rm $(call markdown_location,$(1))
-
-$(call html_location,$(1)): $(1)
-	$(CONVERT) --to html $(1) --stdout > $(call html_location,$(1)) || rm $(call html_location,$(1))
-
-# not used; the ipynb target uses rsync to fill in ipynb/
-#$(call ipynb_location,$(1)): $(1)
-#	(mkdir -p ipynb; cd ipynb; ln -f -s ../$(1) $(notdir $(1)))
-
-# redo all targets about one notebook
-# e.g make -n w1-s2-c1-accents
-$(call sbn,$(1)): $(call markdown_location,$(1)) $(call html_location,$(1))
-
-.PHONY: $(call sbn,$(1))
-endef
-
-$(foreach notebook,$(NOTEBOOKS),$(eval $(call notebook_rule,$(notebook))))
-
-#################### markdown
-markdown: $(MARKDOWNS) media
-	$(RSYNC) -a media markdown/
-
-markdown-clean:
-	rm -f markdown/*.md
-SUPERCLEAN-TARGETS += markdown-clean
-
-.PHONY: markdown markdown-clean
-all: markdown
-
-#################### html
-html: $(HTMLS) media
-	$(RSYNC) -a media html/
-
-html-clean:
-	rm -f html/*.html
-SUPERCLEAN-TARGETS += html-clean
-
-.PHONY: html html-clean
-all: html
+#################### corriges : run make in corriges
 
 #################### ipynb
 # the cities data is huge, and was used only with the miniprojects,
@@ -178,7 +86,7 @@ bundles-dir:
 	mkdir -p bundles
 bundles-clean:
 	rm -rf bundles/
-CLEAN-TARGETS += bundles-clean 
+CLEAN-TARGETS += bundles-clean
 
 .PHONY: bundles-dir bundles-clean
 
@@ -208,7 +116,7 @@ endif
 endef
 
 # e.g. bundle_target(notebooks-html,html)
-# defines various shortcuts like 'html-tar' 
+# defines various shortcuts like 'html-tar'
 # + this will be done when doing make tars
 define bundle_shortcut
 TARS += bundles/$(1).tgz
@@ -272,7 +180,7 @@ $(eval $(call bundle_all_weeks,markdown-focus,markdown-weeks))
 # there's no target ipynb/corrections and similar
 # so these must go in the contents, but not in deps
 NOTEBOOKS-IPYNB = $(foreach notebook,$(NOTEBOOKS),$(call ipynb_location,$(notebook)))
-BUNDLE-IPYNB = $(NOTEBOOKS-IPYNB) ipynb/corrections ipynb/data ipynb/media 
+BUNDLE-IPYNB = $(NOTEBOOKS-IPYNB) ipynb/corrections ipynb/data ipynb/media
 
 $(eval $(call bundle_target,notebooks-ipynb,$(BUNDLE-IPYNB),ipynb $(NOTEBOOKS-IPYNB)))
 $(eval $(call bundle_shortcut,notebooks-ipynb,ipynb))
@@ -327,17 +235,17 @@ CLEAN-TARGETS += standalone-clean
 
 .PHONY: standalone standalone-clean
 
-############################## 
+##############################
 clean: $(CLEAN-TARGETS)
 # html and markdown are so slow to rebuild..
 superclean: $(CLEAN-TARGETS) $(SUPERCLEAN-TARGETS)
 
-.PHONY: clean superclean 
+.PHONY: clean superclean
 ############################################################
 # various development targets
 ############################################################
 
-############################## textual index 
+############################## textual index
 #
 # rough index based on the *SUMMARY.txt
 # I need to set LC_ALL otherwise grep misreads line with accents and gives truncated results
@@ -360,26 +268,15 @@ tags: force
 	git ls-files | xargs etags
 .PHONY: tags
 
-# run nbnorm on all notebooks
-norm normalize: normalize-notebook normalize-quiz
-
-# add the --sign option only on Thierry's macos to reduce noise-only changes
-NORM = tools/nbnorm.py
-NORM_OPTIONS = --author "Thierry Parmentelat" --author "Arnaud Legout" --version 3.0 --logo-path media/both-logos-small-alpha.png --kernel 3 --rise
-
-# -type f : we need to skip symlinks
-normalize-nb normalize-notebook: force
-# this is to work on all present notebook files
-#	find $(FOCUS) -type f | grep '$(PATTERN)'| sort | fgrep -v '/.ipynb_checkpoints/' | xargs $(NORM) $(NORM_OPTIONS)
-# this is to work on all notebooks in git
-	ls $(NOTEBOOKS) | xargs $(NORM) $(NORM_OPTIONS)
+# normalizing notebooks -> see bashrc-utils
+normalize: normalize-quiz
 
 normalize-quiz: force
 	find $(FOCUS) -name '*.quiz' | sort | xargs tools/quiznorm.py
 
 #all: norm
 
-.PHONY: norm normalize normalize-nb normalize-notebook normalize-quiz
+.PHONY: normalize normalize-quiz
 
 #
 CLEAN_FIND= -name '*~' -o -name '.\#*' -o -name '*pyc'

@@ -40,6 +40,7 @@ issues as we ran into them:
    don't show in output;
 * `latex:skip-eval` : don't evaluate that cell, but keep in output;
 * `latex:hidden-code-instead` : this is for cells that expect an input, typically with builtin `input()`; we run this code instead of the actual cell code;
+* `latex:hidden-silent` : resulting cell code just says something odd has happened, but does not divulge actual code; typically in conjunction with `latex:hidden-code-instead` for exercises;
 * `latex:replace` : allows to replace parts of the source; typically used to deal with characters that were not supported by latex.
 
 **Notes**
@@ -132,7 +133,9 @@ Likewise:
 ```
 scopecontents.py
 # or
-scopecontest --from 1 --to 6
+scopecontents.py 1 5
+# or
+scopecontents.py --from 1 --to 6
 ```
 
 #### rebuild
@@ -146,7 +149,7 @@ Run several times (twice should be enough, 3 times to be safe) - as always, to g
 #### shortcut
 
 ```
-redo-all
+pdf-all
 ```
 
 just does `execute-all` + `convert-all` + `latex-all`
@@ -156,11 +159,16 @@ just does `execute-all` + `convert-all` + `latex-all`
 In principle, producing all pdf's up to, say, week 6, can be achieved with
 
 ```
-weeks-all 6
+week-all 6
 ```
 which would recompute the following files - stored in `pdf/` and not in `work/`:
 
-* `Python-w1.pdf`,
-  * and so on up to `Python-w6.pdf`
-* `Python-w1-to-w2.pdf`,
-  * and so on up to `Python-w1-to-w6.pdf`
+* `Python-w6.pdf`,
+* `Python-w1-to-w6.pdf`,
+
+
+```
+weeks-all-upto 6
+```
+
+is equivalent to `for week in $(seq 6); do week-all $week; done`

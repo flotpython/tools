@@ -439,7 +439,7 @@ div.title-slide {
         else:
             outfilename = self.filename
         # don't specify output version for now
-        new_contents = nbformat.writes(self.notebook)
+        new_contents = nbformat.writes(self.notebook) + "\n"
         if replace_file_with_string(outfilename, new_contents):
             print("{} saved into {}".format(self.name, outfilename))
 

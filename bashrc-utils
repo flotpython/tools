@@ -1,18 +1,31 @@
 ##########
+# globals
 # only define if not yet present
 [ -z "$COURSEDIR" ] && COURSEDIR=$HOME/git/flotpython-course/
 [ -z "$TOOLSDIR" ] && TOOLSDIR=$HOME/git/flotpython-tools/
 
+declare -a NORMALIZE_OPTIONS
+NORMALIZE_OPTIONS=(--author "Thierry Parmentelat" --author "Arnaud Legout" --version 3.0 --logo-path media/both-logos-small-alpha.png --kernel 3 --rise)
+
+##########
+# derived
 # where to store computed stuff like executed notebooks and tex conversions
 PDFWORKDIR=$TOOLSDIR/pdf/work
 
-###
+##########
 function notebooks() {
-    (cd $COURSEDIR; git ls-files w?/w*-[cx]*.ipynb)
+    if [ -z "$@" ]; then
+        weeks=$(seq 9)
+    else
+        weeks="$@"
+    fi
+    for week in $weeks; do
+        notebooks-week $week
+    done
 }
 
 function notebook-names() {
-    notebooks | sed -e 's|w[0-9]/||'
+    notebooks "$@" | sed -e 's|w[0-9]/||'
 }
 
 function notebooks-week() {
@@ -20,8 +33,16 @@ function notebooks-week() {
     (cd $COURSEDIR; git ls-files w${week}/w*-[cx]*.ipynb)
 }
 
-########## spot notbeooks based on a text fragment
+##########
+function normalize() {
+    (cd $COURSEDIR;
+     local subjects=$(notebooks "$@")
+     echo Running nbnorm.py on $(wc -w <<< $subjects) notebooks
+     $TOOLSDIR/tools/nbnorm.py "${NORMALIZE_OPTIONS[@]}" $subjects
+    )
+}
 
+########## spot notebooks based on a text fragment
 function search() {
     local nb_files=$(notebooks | xargs grep -l "$@" | wc -l)
     nb_files=$(echo $nb_files)
@@ -128,26 +149,30 @@ function redo-all() {
     latex-all
 }
 
-# the full monty
-function weeks-all() {
-    upto=$1; shift
-    [ -z "$upto" ] && upto=9
-    # reload to be on the safe side
-    source $TOOLSDIR/bashrc-utils
+# the full monty for a given week
+# does e.g. Python-w6.pdf and Python-w1-to-w6.pdf
+function week-all() {
+    week=$1; shift
+    [ -z "$week" ] && { echo Usage: week-all week; return 1; }
     # that's where it should go
     cd $TOOLSDIR/pdf
     execute-all
     convert-all
     #
+    scopecontents.py -f $week -t $week
+    for i in 1 2; do latex-all; done
+    mv work/Python.pdf Python-w${week}.pdf
+
+    [ $week == 1 ] && continue
+    scopecontents.py -f 1 -t $week
+    for i in 1 3; do latex-all; done
+    mv work/Python.pdf Python-w1-to-w${week}.pdf
+
+}
+
+function weeks-all-upto() {
+    local upto=$1; shift
     for week in $(seq $upto); do
-        scopecontents.py -f $week -t $week
-        for i in 1 2; do latex-all; done
-        mv work/Python.pdf Python-w${week}.pdf
-
-        [ $week == 1 ] && continue
-        scopecontents.py -f 1 -t $week
-        for i in 1 3; do latex-all; done
-        mv work/Python.pdf Python-w1-to-w${week}.pdf
+        week-all $week
     done
-
 }

@@ -51,6 +51,9 @@ IGNORE_IF_PRESENT_IN_METADATA = 'latex:skip-eval'
 CODE_TO_EXEC_INSTEAD = "latex:hidden-code-instead"
 CODE_TO_EXEC_BEFORE = "latex:hidden-code-before"
 CODE_TO_EXEC_AFTER = "latex:hidden-code-after"
+# tweaks made with the 3 above keys are usually made plain
+# by adding a comment; except if this is set
+SILENT_HIDDEN_CODE =  "latex:hidden-silent"
 
 # replace on the fly
 CODE_REPLACEMENT = "latex:replace"
@@ -133,12 +136,33 @@ class CustomExecPreprocessor(ExecutePreprocessor):
         # implemented in the superclass, which expects
         ignored_result = cell, resources
         def mark_ignored(cell):
-            if cell.cell_type == 'code':
-                cell.source = (f"# NOTE\n"
-                               f"# {MARKER} has skipped execution of this cell\n\n"
-                               + cell.source)
+            if cell.cell_type != 'code':
+                return
+            if SILENT_HIDDEN_CODE in cell.metadata:
+                return
+            cell.source = (cell.source
+                           + f"\n\n# NOTE\n"
+                           + f"# {MARKER} has skipped execution of this cell"
+                           )
 
-        substituted_code = None
+        def mark_substituted(cell, initial_code):
+            if cell.cell_type != 'code':
+                return
+            if SILENT_HIDDEN_CODE in cell.metadata:
+                cell.source = (initial_code
+                               + f"\n\n# NOTE:\n"
+                               + f"# {MARKER} has used hidden code instead"
+                               )
+                return
+            cell.source = (initial_code
+                           + f"\n\n# NOTE:"
+                           + f"\n# {MARKER} has used instead:"
+                           + f"\n##########"
+                           + f"\n{cell.source}"
+                           + f"\n##########"
+                           )
+
+        initial_code = None
 
         source = cell.source
         for ignore in IGNORE_IF_PRESENT_IN_SOURCE:
@@ -154,15 +178,15 @@ class CustomExecPreprocessor(ExecutePreprocessor):
                 return ignored_result
 
             if key == CODE_TO_EXEC_INSTEAD:
-                substituted_code = cell.source
+                initial_code = cell.source
                 cell.source = metadata[key]
 
             if key == CODE_TO_EXEC_BEFORE:
-                substituted_code = cell.source
+                initial_code = cell.source
                 cell.source = metadata[key] + "\n" + cell.source
 
             if key == CODE_TO_EXEC_AFTER:
-                substituted_code = cell.source
+                initial_code = cell.source
                 cell.source = cell.source + "\n" + metadata[key]
 
             if key == CODE_REPLACEMENT:
@@ -172,13 +196,8 @@ class CustomExecPreprocessor(ExecutePreprocessor):
         execution_result = ExecutePreprocessor.preprocess_cell(
             self, cell, resources, cell_index)
 
-        if substituted_code is not None and cell.cell_type == 'code':
-            cell.source = (substituted_code
-                           + f"\n\n# NOTE:\n# {MARKER} has used instead:"
-                           + f"\n##########"
-                           + f"\n{cell.source}"
-                           + f"\n##########"
-                           )
+        if initial_code is not None:
+            mark_substituted(cell, initial_code)
 
         # perform replacements in output as well
         # nope, that's more complicated than that

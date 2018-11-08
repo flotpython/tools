@@ -66,7 +66,7 @@ $(foreach week, $(WEEKS), $(eval $(call week_target,$(week))))
 # convenience to generate a notebook fragment
 # that can validate all known exos at once
 validation:
-	$(TOOL) --notebook -o $(COURSEDIR)/modules/corrections/validation $(WEEKS)
+	$(TOOL) --notebook -o validation $(WEEKS)
 
 ##### boilerplate
 
