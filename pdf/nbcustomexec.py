@@ -162,6 +162,40 @@ class CustomExecPreprocessor(ExecutePreprocessor):
                            + f"\n##########"
                            )
 
+        def break_line(one_string, width):
+            """
+            Input is a single string with possibly several \n
+            """
+            result = ""
+            counter = 0
+            for c in one_string:
+                if c == '\n':
+                    result += c
+                    counter = 0
+                elif counter < width:
+                    result += c
+                    counter += 1
+                else:
+                    result += "ϟ\n  ϟ"
+                    result += c
+                    counter = 4
+            return result
+
+
+        def break_lines_in_output(cell, width):
+            if cell.cell_type != 'code':
+                return
+            for output in cell.outputs:
+                if output.output_type == 'execute_result':
+                    output.data['text/plain'] = break_line(
+                        output.data['text/plain'], width)
+                elif output.output_type == 'stream':
+                    output.text = break_line(
+                        output.text, width)
+                else:
+                    #print(f'output_type = {output.output_type}')
+                    pass
+
         initial_code = None
 
         source = cell.source
@@ -196,8 +230,11 @@ class CustomExecPreprocessor(ExecutePreprocessor):
         execution_result = ExecutePreprocessor.preprocess_cell(
             self, cell, resources, cell_index)
 
+        # post-process executed cell
         if initial_code is not None:
             mark_substituted(cell, initial_code)
+
+        break_lines_in_output(cell, 75)
 
         # perform replacements in output as well
         # nope, that's more complicated than that
