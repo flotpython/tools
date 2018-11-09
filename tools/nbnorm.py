@@ -488,28 +488,39 @@ usage = """normalize notebooks
 
 def main():
     parser = ArgumentParser(usage=usage)
-    parser.add_argument("-f", "--force", action="store", dest="force_name_version", default=None,
-                        help="force writing notebookname, or version, when provided, even if already present")
-    parser.add_argument("-t", "--licence-text", dest='licence', default=default_licence,
-                        help="the text for the licence string in titles")
-    parser.add_argument("-a", "--author", dest='authors', action="append", default=[], type=str,
-                        help="define list of authors")
-    parser.add_argument("-l", "--logo-path", dest='logo_path', action="store", default="", type=str,
-                        help="path to use when inserting the logo img (should be about 25px high)")
-    parser.add_argument("-k", "--kernel", dest='kernel', type=int, default=0, choices=(2, 3),
-                        help="Set to use python2 or 3; remains unchanged if not set")
-    parser.add_argument("-r", "--rise", dest='rise', default=False, action='store_true',
-                        help="fill in RISE/livereveal metadata with hard-wired settings")
-    parser.add_argument("-e", "--extensions", dest='exts', action='store_true', default=False,
-                        help="fill cell metadata for extensions, if missing")
-    parser.add_argument("-b", "--backquotes", default=False, action='store_true',
-                        help="check for use of ``` rather than 4 preceding spaces")
-    parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=False,
-                        help="show current notebookname")
-    parser.add_argument("-V", "--version", dest="version", action="store", default=None,
-                        help="set version in notebook metadata")
-    parser.add_argument("notebooks", metavar="IPYNBS", nargs="*",
-                        help="the notebooks to normalize")
+    parser.add_argument(
+        "-f", "--force", action="store", dest="force_name_version", default=None,
+        help="force writing notebookname, or version, when provided, even if already present")
+    parser.add_argument(
+        "-t", "--licence-text", dest='licence', default=default_licence,
+        help="the text for the licence string in titles")
+    parser.add_argument(
+        "-a", "--author", dest='authors', action="append", default=[], type=str,
+        help="define list of authors")
+    parser.add_argument(
+        "-l", "--logo-path", dest='logo_path', action="store", default="", type=str,
+        help="path to use when inserting the logo img (should be about 25px high)")
+    parser.add_argument(
+        "-k", "--kernel", dest='kernel', type=int, default=0, choices=(2, 3),
+        help="Set to use python2 or 3; remains unchanged if not set")
+    parser.add_argument(
+        "-r", "--rise", dest='rise', default=False, action='store_true',
+        help="fill in RISE/livereveal metadata with hard-wired settings")
+    parser.add_argument(
+        "-e", "--extensions", dest='exts', action='store_true', default=False,
+        help="fill cell metadata for extensions, if missing")
+    parser.add_argument(
+        "-b", "--backquotes", default=False, action='store_true',
+        help="check for use of ``` rather than 4 preceding spaces")
+    parser.add_argument(
+        "-v", "--verbose", dest="verbose", action="store_true", default=False,
+        help="show current notebookname")
+    parser.add_argument(
+        "-V", "--version", dest="version", action="store", default=None,
+        help="set version in notebook metadata")
+    parser.add_argument(
+        "notebooks", metavar="IPYNBS", nargs="*",
+        help="the notebooks to normalize")
 
     args = parser.parse_args()
 
