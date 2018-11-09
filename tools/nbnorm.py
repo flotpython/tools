@@ -431,6 +431,28 @@ div.title-slide {
                 if not in_backquotes and line.startswith("    "):
                     print(f"MD4SP: {self.name}:{index} -> {line}")
 
+    # in one ontebook of w8 we have a lot of urls
+    # embedded in quoted sections of the Markdown
+    # so they show up as false positive
+    # could maybe be coupled with the previous spotting add-on ..
+    def spot_direct_urls(self):
+        for index, cell in enumerate(self.cells(), 1):
+            if cell.cell_type != 'markdown':
+                continue
+            lines = cell.source if type(cell.source) is list \
+                else cell.source.split("\n")
+            for line in lines:
+                match1 = re.search(r'(?P<url>http[s]?://[^/\]\)]*)/', line)
+                if not match1:
+                    continue
+                url = match1.group('url')
+                match2 = re.search(rf'\[.*\]\(.*{url}.*\)', line)
+                if match2:
+                    continue
+                match3 = re.search(rf'<.*{url}.*>', line)
+                if not match3:
+                    print(f"DIRURL: {self.name}:{index} -> {line}")
+
 
     def save(self, keep_alt=False):
         if keep_alt:
@@ -446,7 +468,7 @@ div.title-slide {
 
     def full_monty(self, force_name_version, version,
                    licence, authors, logo_path,
-                   kernel, rise, exts, backquotes):
+                   kernel, rise, exts, backquotes, urls):
         self.parse()
         self.clear_all_outputs()
         self.remove_empty_cells()
@@ -463,6 +485,8 @@ div.title-slide {
         self.spot_long_code_cells()
         if backquotes:
             self.spot_md_escapes_4_spaces()
+        if urls:
+            self.spot_direct_urls()
         self.save()
 
 
@@ -513,6 +537,9 @@ def main():
         "-b", "--backquotes", default=False, action='store_true',
         help="check for use of ``` rather than 4 preceding spaces")
     parser.add_argument(
+        "-u", "--urls", default=False, action='store_true',
+        help="tries to spot direct URLs, i.e. used outside of markdown []()")
+    parser.add_argument(
         "-v", "--verbose", dest="verbose", action="store_true", default=False,
         help="show current notebookname")
     parser.add_argument(
@@ -534,11 +561,12 @@ def main():
             continue
         if args.verbose:
             print("{} is opening notebook".format(sys.argv[0]), notebook)
-        full_monty(notebook, force_name_version=args.force_name_version, version=args.version,
-                   licence=args.licence, authors=args.authors, logo_path=args.logo_path,
-                   kernel=args.kernel, rise=args.rise, exts=args.exts,
-                   backquotes=args.backquotes,
-                   verbose=args.verbose)
+        full_monty(
+            notebook, force_name_version=args.force_name_version,
+            version=args.version, licence=args.licence, authors=args.authors,
+            logo_path=args.logo_path, kernel=args.kernel,
+            rise=args.rise, exts=args.exts, backquotes=args.backquotes,
+            urls=args.urls, verbose=args.verbose)
 
 if __name__ == '__main__':
     main()
