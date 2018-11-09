@@ -296,12 +296,13 @@
     \lhead{MOOC Python 3}
     \chead{}
     \rhead{Semaine \notebookweek, Séquence \notebookseq}
-    \lfoot{}
-    \cfoot{\textbf{\thepage}}
-    \rfoot{}
-    \renewcommand{\headrulewidth}{0.4pt}
-    \renewcommand{\footrulewidth}{0pt}}
-
+    % used to have only page number, centered, no rule
+    % but for now at least it's super convenient to show notebook name
+    \lfoot{\textit{\notebookname}}
+    \cfoot{}
+    \rfoot{\textbf{\thepage}}
+    \renewcommand{\headrulewidth}{0.3pt}
+    \renewcommand{\footrulewidth}{0.3pt}}
 
 \begin{document}
 
