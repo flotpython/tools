@@ -14,7 +14,7 @@ PDFWORKDIR=$TOOLSDIR/pdf/work
 
 ##########
 function notebooks() {
-    if [ -z "$@" ]; then
+    if [[ -z "$@" ]]; then
         weeks=$(seq 9)
     else
         weeks="$@"
