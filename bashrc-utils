@@ -143,7 +143,7 @@ function latex-all() {
      )
 }
 
-function redo-all() {
+function pdf-all() {
     execute-all
     convert-all
     latex-all
