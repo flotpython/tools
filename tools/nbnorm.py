@@ -30,29 +30,31 @@ from nbformat.notebooknode import NotebookNode
 # not customizable yet
 # at the notebook level
 
-livereveal_metadata_padding = {
-    'livereveal': {
-        "theme": "simple",
+rise_metadata_padding = {
+    'rise': {
+        "autolaunch" : True,
+        "theme": "sky",
         "start_slideshow_at": "selected",
-        "auto_select" : "code",
-        "auto_select_fragment" : True,
-        "autolaunch" : False,
+        "slideNumber": "c/t",
+        "transition": "cube",
+    },
+#        "auto_select" : "code",
+#        "auto_select_fragment" : True,
 #        "slideNumber" : False,
 #        "controls" : False,
-    },
+#    },
 }
 
 # this was for the video slides, it's bad on regular notebooks
-livereveal_metadata_clear = {
+rise_metadata_clear = {
     'celltoolbar': 'Slideshow',
 }
 
-livereveal_metadata_force = {
-    'livereveal': {
-        "backimage" : "media/nologo.png",
-        "transition": "fade",
-        "width": "100%",
-        "height": "100%",
+rise_metadata_force = {
+    'rise': {
+#        "backimage" : "media/nologo.png",
+#        "width": "100%",
+#        "height": "100%",
     }
 }
 
@@ -214,15 +216,15 @@ class Notebook:
     def fill_rise_metadata(self, rise):
         """
         if rise is set:
-        if metadata is missing the 'livereveal' key,
+        if metadata is missing the 'rise' key,
         fill it with a set of hard-wired settings
         """
         if not rise:
             return
         metadata = self.notebook['metadata']
-        pad_metadata(metadata, livereveal_metadata_padding)
-        pad_metadata(metadata, livereveal_metadata_force, force=True)
-        clear_metadata(metadata, livereveal_metadata_clear)
+        pad_metadata(metadata, rise_metadata_padding)
+        pad_metadata(metadata, rise_metadata_force, force=True)
+        clear_metadata(metadata, rise_metadata_clear)
 
     def fill_extensions_metadata(self, exts):
         """
@@ -244,48 +246,31 @@ class Notebook:
         # xxx it looks like this <style> tag somehow gets
         # trimmed away when rendered inside of edx
         # so I had to add it in nbhosting's custom.css as well
-        title_style = '''<style>
-div.title-slide {
-    width: 100%;
-    display: flex;
-    flex-direction: row;            /* default value; can be omitted */
-    flex-wrap: nowrap;              /* default value; can be omitted */
-    justify-content: space-between;
-}
-</style>
-'''
 
-        title_format = '''<div class="title-slide">
-<span style="float:left;">{licence}</span>
-<span>{html_authors}</span>
-<span>{html_image}</span>
-</div>'''
+        def title_cell(licence, authors, logo_path):
+            cell = ''
+            cell += f'<div class="licence">\n'
+            cell += f'<span>{licence}</span>\n'
+            if authors:
+                cell += f'<span>{" &amp; ".join(authors)}</span>\n'
+            if logo_path:
+                cell += f'<span><img src="{logo_path}" /></span>\n'
+            cell += f'</div>'
+            return cell
 
 
-        title_image_format = '<img src="{logo_path}" style="display:inline" />'
-        html_image = "" if not logo_path else \
-                      title_image_format.format(logo_path=logo_path)
         # a bit rustic but good enough
-
-
         def is_title_cell(cell):
             # for legacy - notebooks tweaked with older versions
             # of this tool, we want to consider first cells that have
             # Licence as being our title cell as well
             return cell['cell_type'] == 'markdown' \
                 and (cell['source'].find("title-slide") >= 0
-                     or cell['source'].find("Licence") >= 0)
-        html_authors = "" if not authors \
-                       else " &amp; ".join(authors)
-
-        title_line = title_style.replace("\n", "") \
-                       + title_format.format(
-                           licence=licence,
-                           html_authors=html_authors,
-                           html_image=html_image)
+                     or cell['source'].lower().find("licence") >= 0)
 
         # when opened interactively and then saved again, this is how the result looks like
-        title_lines = [ line + "\n" for line in title_line.split("\n") ]
+        expected_title_cell = title_cell(licence, authors, logo_path)
+        title_lines = [line + "\n" for line in expected_title_cell.split("\n")]
         # remove last \n
         title_lines[-1] = title_lines[-1][:-1]
 
