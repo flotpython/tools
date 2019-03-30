@@ -56,7 +56,7 @@ class Exomap(OrderedDict):
     ln_pat = re.compile(r'\s.*"from\s+corrections\.(?P<source>\w+).*import\s+exo_(?P<exo>\w+)')
 
     def _scan(self):
-        for notebook in self.coursedir.glob("w?/w*-x*.ipynb"):
+        for notebook in sorted(self.coursedir.glob("w?/w*-x*.ipynb")):
             match1 = self.fn_pat.match(notebook.stem)
             if not match1:
                 print(f"something wrong with {notebook.stem}")
