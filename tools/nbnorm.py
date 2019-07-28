@@ -47,7 +47,7 @@ rise_metadata_padding = {
 
 # this was for the video slides, it's bad on regular notebooks
 rise_metadata_clear = {
-    'celltoolbar': 'Slideshow',
+#    'celltoolbar': 'Slideshow',
 }
 
 rise_metadata_force = {
@@ -64,6 +64,17 @@ extensions_metadata_cell_padding = {
     "run_control": {
         "frozen": False,
         "read_only": False
+    }
+}
+
+ipypublish_metadata_padding = {
+    "ipub": {
+        "sphinx": {
+            "toggle_input": True,
+            "toggle_output": True,
+            "toggle_input_all": True,
+            "toggle_output_all": True
+        }
     }
 }
 
@@ -235,6 +246,17 @@ class Notebook:
             return
         for cell in self.cells():
             pad_metadata(cell['metadata'], extensions_metadata_cell_padding)
+
+
+    def fill_ipypublish_metadata(self, ipypublish):
+        """
+        if exts is set, fill each cell metadata's with a hard-wired
+        set of defaults for extensions; this is to minimize git diffs
+        """
+        if not ipypublish:
+            return
+        metadata = self.notebook['metadata']
+        pad_metadata(metadata, ipypublish_metadata_padding)
 
 
     def ensure_title(self, licence, authors, logo_path):
@@ -465,6 +487,7 @@ class Notebook:
         self.handle_kernelspec(kernel)
         self.fill_rise_metadata(rise)
         self.fill_extensions_metadata(exts)
+        self.fill_ipypublish_metadata(True)
         self.ensure_title(licence, authors, logo_path)
         self.fix_ill_formed_markdown_bullets()
         self.spot_long_code_cells()
