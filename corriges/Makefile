@@ -11,9 +11,9 @@ define title
 MOOC Python 3;Session 2018;Corrigés de la semaine $(1)
 endef
 
-WEEKS = 2 3 4 5 7
-W6_FILES = $(COURSEDIR)/data/shipdict.py
-ALL = 2 3 4 5 $(W6_FILES) 7
+WEEKS = 2 3 4 5 6 7
+SHIPDICT-FILES = $(COURSEDIR)/data/shipdict.py
+ALL = 2 3 4 5 $(SHIPDICT-FILES) 6 7
 
 ##########
 # Semaine 6:
@@ -22,18 +22,18 @@ ALL = 2 3 4 5 $(W6_FILES) 7
 # la soluce complète est dans data/shipdict.py
 # qui contient pour des raisons historiques des balises BEG/END
 
-w6: corriges-w6.tex
+shipdict: corriges-shipdict.tex
 
-corriges-w6.tex:
-	$(TOOL) --title "$(call title, 6)" --output corriges-w6 $(W6_FILES)
+corriges-shipdict.tex:
+	$(TOOL) --title "$(call title, 6)" --output corriges-shipdict $(SHIPDICT-FILES)
 
-pdf:: corriges-w6.pdf
+pdf:: corriges-shipdict.pdf
 
 ##########
 # the default for runcorriges is to produce both a .txt and .tex
 WTEXS =  $(foreach week, $(WEEKS), corriges-w$(week).tex)
 
-everything: corriges-all.tex $(WTEXS) w6
+everything: corriges-all.tex $(WTEXS) shipdict
 
 corriges-all.tex: .FORCE
 	$(TOOL) --contents --title "$(TITLE)" --output corriges-all $(ALL)
@@ -79,7 +79,7 @@ clean:
 	rm -f *.{aux,log,tex,toc,out}
 
 superclean:
-	rm -rf corriges-w*
+	rm -rf corriges-w* corriges-shipdict*
 
 .FORCE:
 
