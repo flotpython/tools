@@ -205,7 +205,7 @@ label=%(name)s%(more)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{S
         if first:
             notebook.add_text_cell("*****")
             cell = Cell()
-            cell.add_line(f"########## exo {self.name} {self.more} ##########")
+            cell.add_line(f"########## exo {full_solution} ##########")
             cell.add_line(f"import {module}")
             if self.no_example is None:
                 cell.add_line(f"{exo}.example()")
