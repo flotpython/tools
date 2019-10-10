@@ -68,6 +68,13 @@ $(foreach week, $(WEEKS), $(eval $(call week_target,$(week))))
 validation:
 	$(TOOL) --notebook -o validation $(WEEKS)
 
+########## separate
+# create one .py file per solution in the separate/ 
+# directory so that individual solutions can be passed along
+separate:
+	$(TOOL) --separate $(WEEKS)
+.PHONY: separate
+
 ##### boilerplate
 
 %.pdf: %.tex
@@ -79,7 +86,7 @@ clean:
 	rm -f *.{aux,log,tex,toc,out}
 
 superclean:
-	rm -rf corriges-w* corriges-shipdict*
+	rm -rf corriges-w* corriges-shipdict* separate/
 
 .FORCE:
 

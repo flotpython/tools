@@ -125,6 +125,12 @@ class Solution:                                         # pylint: disable=r0902
         return f"<Solution from {self.filename} function={self.name} " \
                f"week={self.week} seq={self.sequence}>"
 
+    @property
+    def qual_name(self):
+        if not self.more:
+            return self.name
+        return f"{self.name}_{self.more}"
+
     def add_code_line(self, line):
         "convenience for the parser code"
         self.code += line + "\n"
@@ -246,7 +252,6 @@ else:
 
 ############################################################
 # as of dec. 11 2014 all files are UTF-8 and that's it
-
 
 class Source:                                           # pylint: disable=r0903
 
@@ -501,6 +506,7 @@ def main():                                      # pylint: disable=r0914, r0915
     parser.add_argument("-L", "--latex", action='store_true', default=False)
     parser.add_argument("-N", "--notebook", action='store_true', default=False)
     parser.add_argument("-T", "--text", action='store_true', default=False)
+    parser.add_argument("-S", "--separate", action='store_true', default=False)
     parser.add_argument("weeks_or_files", nargs='+')
     args = parser.parse_args()
 
@@ -533,19 +539,28 @@ def main():                                      # pylint: disable=r0914, r0915
         do_latex = True
         do_text = False
         do_notebook = False
+        do_separate = False
     elif args.text:
         do_latex = False
         do_text = True
         do_notebook = False
+        do_separate = False
     elif args.notebook:
         do_latex = False
         do_text = False
         do_notebook = True
+        do_separate = False
+    elif args.separate:
+        do_latex = False
+        do_text = False
+        do_notebook = False
+        do_separate = True
     else:
         do_latex = True
         do_text = True
         do_notebook = False
-
+        do_separate = False
+        
     output = args.output if args.output else "corriges"
     texoutput = Path(f"{output}.tex")
     txtoutput = Path(f"{output}.txt")
@@ -558,6 +573,14 @@ def main():                                      # pylint: disable=r0914, r0915
         Text(txtoutput).write(solutions, title_list=title_list)
     if do_notebook:
         Notebook(nboutput).write(solutions)
+    if do_separate:
+        sep = Path("separate")
+        sep.is_dir() or sep.mkdir()
+        for solution in solutions:
+            solpath = sep / f"{solution.qual_name}.py"
+            with solpath.open('w') as f:
+                f.write(solution.text())
+            print(f"(over)wrote {solpath}")
     stats = Stats(solutions, functions)
     stats.print_count(verbose=False)
 
