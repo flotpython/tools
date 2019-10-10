@@ -120,10 +120,13 @@ class Solution:                                         # pylint: disable=r0902
         self.no_example = no_example
         # internals : the Source parser will feed the code in there
         self.code = ""
+        # the first solution for an exercise also keeps track
+        # of its sibling solutions
+        self.siblings = []
 
     def __repr__(self):
         return f"<Solution from {self.filename} function={self.name} " \
-               f"week={self.week} seq={self.sequence}>"
+               f"week={self.week} seq={self.sequence} more={self.more}>"
 
     @property
     def qual_name(self):
@@ -234,16 +237,23 @@ else:
             cell.record()
 
 ########################################
-    text_format = r"""
+    text_format_with = r"""
 ##################################################
 # {name}{more} - Semaine {week} Séquence {sequence}
 ##################################################
 {code}
 """
+    text_format_without = r"""
+##################################################
+# {name}{more}
+##################################################
+{code}
+"""
 
-    def text(self):
+    def text(self, show_ref=True):
         more = " ({})".format(self.more) if self.more else ""
-        return self.text_format.format(
+        format = self.text_format_with if show_ref else self.text_format_without
+        return format.format(
             name=self.name,
             more=more,
             week=self.week,
@@ -258,6 +268,11 @@ class Source:                                           # pylint: disable=r0903
     def __init__(self, path, exomap):
         self.path = path
         self.exomap = exomap
+        self.solutions = []
+        self.functions = []
+        
+    def __repr__(self):
+        return f"<Source {self.path}>"
 
     beg_matcher = re.compile(
         r"\A. @BEG@(?P<keywords>(\s+[a-z_]+=[a-z_A-Z0-9-]+)+)\s*\Z"
@@ -278,9 +293,10 @@ class Source:                                           # pylint: disable=r0903
         only the first instance appears in tuple[1]
         """
         solution = None
-        solutions = []
-        functions = []
-        names = []
+        self.solutions = []
+        self.functions = []
+        # a map name -> main solution
+        map_by_name = {}
         with self.path.open() as feed:
             for lineno, line in enumerate(feed, 1):
                 # remove EOL for convenience
@@ -320,19 +336,23 @@ class Source:                                           # pylint: disable=r0903
                     if solution is None:
                         print(f"{self.path}:{lineno} - Unexpected @END@ - ignored\n{line}")
                     else:
-                        # memorize current solution
-                        solutions.append(solution)
-                        # avoid duplicates in functions
-                        if solution.name not in names:
-                            names.append(solution.name)
-                            functions.append(solution)
+                        # self.functions keeps only the main / first 
+                        # solution for one problem
+                        if solution.name not in map_by_name:
+                            # record main / first solution
+                            map_by_name[solution.name] = solution
+                            self.functions.append(solution)
+                        else:
+                            map_by_name[solution.name].siblings.append(solution)
+                        # self.solutions memorize all solutions
+                        self.solutions.append(solution)
                         solution = None
                 elif '@BEG@' in line or '@END@' in line:
                     print(f"{self.path}:{lineno} Warning - misplaced @BEG|END@ - ignored\n{line}")
                     continue
                 elif solution:
                     solution.add_code_line(line)
-        return (solutions, functions)
+        return (self.solutions, self.functions)
 
 ############################################################
 
@@ -530,8 +550,11 @@ def main():                                      # pylint: disable=r0914, r0915
         else:
             input_paths.append(Path(arg))
 
+    sources = []
     for path in input_paths:
-        sols, funs = Source(path, exomap).parse()
+        source = Source(path, exomap)
+        sources.append(source)
+        sols, funs = source.parse()
         solutions += sols
         functions += funs
 
@@ -576,11 +599,13 @@ def main():                                      # pylint: disable=r0914, r0915
     if do_separate:
         sep = Path("separate")
         sep.is_dir() or sep.mkdir()
-        for solution in solutions:
-            solpath = sep / f"{solution.qual_name}.py"
-            with solpath.open('w') as f:
-                f.write(solution.text())
-            print(f"(over)wrote {solpath}")
+        for function in functions:
+            funpath = sep / f"{function.qual_name}.py"
+            with funpath.open('w') as f:
+                f.write(function.text(show_ref=False))
+                for sibling in function.siblings:
+                    f.write(sibling.text(show_ref=False))
+            print(f"(over)wrote {funpath}")
     stats = Stats(solutions, functions)
     stats.print_count(verbose=False)
 
