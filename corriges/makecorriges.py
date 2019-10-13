@@ -98,10 +98,11 @@ class Solution:                                         # pylint: disable=r0902
 
     def __init__(self,                                  # pylint: disable=r0913
                  # mandatory
-                 path, week, sequence, name,
+                 path, week, sequence, name, *,
                  # additional tags supported on the @BEG@ line
                  more=None, latex_size='small',
                  no_validation=None, no_example=None,
+                 continued=None,
                  ):
         self.path = path
         self.filename = path.stem
@@ -109,9 +110,12 @@ class Solution:                                         # pylint: disable=r0902
         self.week = week
         self.sequence = sequence
         self.name = name
-        # something like 'v2' or 'suite' to label a new version or a
-        # continuation
+        # something like 'bis' or 'ter' to label an alternate version 
         self.more = more
+        # use this to signal the chunk is a continued
+        # i.e. an artificial split only needed 
+        # for page breaks in the pdf output
+        self.continued = continued        
         # set to footnotesize if a solution is too wide
         self.latex_size = latex_size
         # if set (to anything), no validation at all
@@ -147,19 +151,23 @@ class Solution:                                         # pylint: disable=r0902
 
 
 ########################################
-    # utiliser les {} comme un marqueur dans du latex ne semble pas
-    # être l'idée du siècle -> je prends pour une fois %()s et l'opérateur %
-    latex_format = r"""
+    # using {} as an expressions-marker in a piece of LaTeX 
+    # truly does not sound that great an idea
+    # so for once let's use %()s and the old-school % operator
+    # a ninja template would probably be the other best pick...
+    latex_format_toc = r"""
 \phantomsection
 \addcontentsline{toc}{subsection}{
 \texttt{%(name)s}%(more)s -- {\small \footnotesize{Semaine} %(week)s \footnotesize{Séquence} %(sequence)s}
 %%%(name)s
 }
+"""
+    latex_format = r"""
 \begin{Verbatim}[frame=single,fontsize=\%(latex_size)s, samepage=true, numbers=left,
 framesep=3mm, framerule=3px,
 rulecolor=\color{Gray},
 %%fillcolor=\color{Plum},
-label=%(name)s%(more)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{Séquence} %(sequence)s}]
+label=%(name)s%(more)s%(continued)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{Séquence} %(sequence)s}]
 %(code)s\end{Verbatim}
 \vspace{1cm}
 """
@@ -170,9 +178,11 @@ label=%(name)s%(more)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{S
         sequence = self.sequence
         latex_size = self.latex_size
         code = self.code
-        more = r" {{\small ({})}}".format(self.more) if self.more else ""
-        return self.latex_format % dict(name=name, week=week, sequence=sequence,
-                                        latex_size=latex_size, code=code, more=more)
+        more = f"\\_{self.more}" if self.more else ""
+        continued = " (continued)" if self.continued else ""
+        toc = self.latex_format_toc % locals() if not self.continued else ""
+        body = self.latex_format % locals()
+        return toc + body
 
     # the validation notebook
     def add_validation(self, notebook, first):
@@ -251,14 +261,19 @@ else:
 """
 
     def text(self, show_ref=True):
-        more = " ({})".format(self.more) if self.more else ""
+        # continued solutions just need to append text
+        if self.continued:
+            return self.code
+        more = f"_{self.more}" if self.more else ""
         format = self.text_format_with if show_ref else self.text_format_without
         return format.format(
             name=self.name,
             more=more,
             week=self.week,
             sequence=self.sequence,
-            code=self.code)
+            code=self.code,
+            )
+
 
 ############################################################
 # as of dec. 11 2014 all files are UTF-8 and that's it
@@ -481,6 +496,13 @@ class Notebook:
         seen = set()
 
         for solution in solutions:
+            # we ignore continuation chunks 
+            # like e.g. more=bis-suite 
+            # that can be found with the cesar/vigenere exercise
+            # this is an artificial splitting for pagebreaking
+            # but is not a new solution
+            if solution.more and solution.continued:
+                continue
             first = solution.name not in seen
             solution.add_validation(self, first=first)
             seen.add(solution.name)
