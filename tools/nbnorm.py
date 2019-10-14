@@ -473,9 +473,9 @@ class Notebook:
             print("{} saved into {}".format(self.name, outfilename))
 
 
-    def full_monty(self, force_name_version, version,
+    def full_monty(self, *, force_name_version, version,
                    licence, authors, logo_path,
-                   kernel, rise, exts, backquotes, urls):
+                   kernel, rise, ipypublish, exts, backquotes, urls):
         self.parse()
         self.clear_all_outputs()
         self.remove_empty_cells()
@@ -487,7 +487,7 @@ class Notebook:
         self.handle_kernelspec(kernel)
         self.fill_rise_metadata(rise)
         self.fill_extensions_metadata(exts)
-        self.fill_ipypublish_metadata(True)
+        self.fill_ipypublish_metadata(ipypublish)
         self.ensure_title(licence, authors, logo_path)
         self.fix_ill_formed_markdown_bullets()
         self.spot_long_code_cells()
@@ -539,6 +539,9 @@ def main():
         "-r", "--rise", dest='rise', default=False, action='store_true',
         help="fill in RISE/livereveal metadata with hard-wired settings")
     parser.add_argument(
+        "--ipypublish", default=False, action='store_true',
+        help="fill in ipypublish metadata with hard-wired settings")
+    parser.add_argument(
         "-e", "--extensions", dest='exts', action='store_true', default=False,
         help="fill cell metadata for extensions, if missing")
     parser.add_argument(
@@ -573,7 +576,8 @@ def main():
             notebook, force_name_version=args.force_name_version,
             version=args.version, licence=args.licence, authors=args.authors,
             logo_path=args.logo_path, kernel=args.kernel,
-            rise=args.rise, exts=args.exts, backquotes=args.backquotes,
+            rise=args.rise, ipypublish=args.ipypublish,
+            exts=args.exts, backquotes=args.backquotes,
             urls=args.urls, verbose=args.verbose)
 
 if __name__ == '__main__':
