@@ -501,7 +501,7 @@ class Notebook:
             # that can be found with the cesar/vigenere exercise
             # this is an artificial splitting for pagebreaking
             # but is not a new solution
-            if solution.more and solution.continued:
+            if solution.continued:
                 continue
             first = solution.name not in seen
             solution.add_validation(self, first=first)
