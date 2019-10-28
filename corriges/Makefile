@@ -10,6 +10,7 @@ TITLE = MOOC Python 3;Session 2018;Tous les corrigés
 define title
 MOOC Python 3;Session 2018;Corrigés de la semaine $(1)
 endef
+shipdict_title = MOOC Python 3;Session 2018;Exercice shipdict
 
 WEEKS = 2 3 4 5 6 7
 SHIPDICT-FILES = $(COURSEDIR)/data/shipdict.py
@@ -25,7 +26,7 @@ ALL = 2 3 4 5 $(SHIPDICT-FILES) 6 7
 shipdict: corriges-shipdict.tex
 
 corriges-shipdict.tex:
-	$(TOOL) --title "$(call title, 6)" --output corriges-shipdict $(SHIPDICT-FILES)
+	$(TOOL) --title "$(shipdict_title)" --output corriges-shipdict $(SHIPDICT-FILES)
 
 pdf:: corriges-shipdict.pdf
 
