@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+# particularly for the degree sign (was pdflatex)
+LATEX = xelatex
+
 all: everything
 
 COURSEDIR = ../../flotpython-course
@@ -55,7 +58,7 @@ corriges-w$(1).tex: .FORCE
 	    --title "MOOC Python 3;Session 2018;Corrigés de la semaine $(1)" $(1)
 
 corriges-w$(1).pdf: corriges-w$(1).tex
-	pdflatex corriges-w$(1).tex
+	$(LATEX) corriges-w$(1).tex
 
 pdf:: corriges-w$(1).pdf
 endef
@@ -79,7 +82,7 @@ separate:
 ##### boilerplate
 
 %.pdf: %.tex
-	pdflatex $*
+	$(LATEX) $*
 
 .PHONY: all clean superclean pdf
 

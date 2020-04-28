@@ -164,7 +164,7 @@ class Solution:                                         # pylint: disable=r0902
 """
     latex_format = r"""
 \begin{Verbatim}[frame=single,fontsize=\%(latex_size)s, samepage=true, numbers=left,
-framesep=3mm, framerule=3px,
+framesep=3mm, framerule=3pt,
 rulecolor=\color{Gray},
 %%fillcolor=\color{Plum},
 label=%(name)s%(more)s%(continued)s - {\small \footnotesize{Semaine} %(week)s \footnotesize{Séquence} %(sequence)s}]
