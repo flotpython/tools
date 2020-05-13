@@ -7,3 +7,10 @@ pdf/work/*.ipynb
 pdf/work/*.tex
 *.tgz
 .du
+*.tex
+*.aux
+*.log
+*.txt
+*.toc
+*.out
+
