@@ -5,7 +5,7 @@
 
 import re
 from pathlib import Path
-from collections import OrderedDict
+from itertools import chain
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
@@ -13,6 +13,10 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import nbformat
 
 DEBUG = False
+
+def debug(*args, **kwds):
+    if DEBUG:
+        print(*args, **kwds)
 
 ########## helpers / filesystem
 
@@ -25,7 +29,7 @@ def check_coursedir(coursedir):
 
 
 # where to find files like exo_carre.py, relative to COURSEDIR
-SOLUTION_PATHS = ["modules/corrections", "data"]
+SOLUTION_PATHS = ["modules/corrections", "data"] + [f"w{i}" for i in range(1, 10)]
 
 def locate_stem(coursedir, name):
     coursedir = Path(coursedir)
@@ -35,42 +39,56 @@ def locate_stem(coursedir, name):
             candidate = coursedir / relpath / filename
             if candidate.exists():
                 return candidate
-    return None
+    print(f"ERROR: could not spot stem {name} - aborting")
+    exit(1)
 
 
-class Exomap(OrderedDict):
+class Exomap(dict):
     """
     An object that keeps track of the association
     name -> week x sequence x source_stem
     """
     def __init__(self, coursedir):
+        super().__init__()
         self.coursedir = coursedir
-        self._scan()
-        OrderedDict.__init__(self)
 
     def __repr__(self):
         return "\n".join(f"{week}-{seq}-{exo}-{source}"
                          for exo, (week, seq, source) in self.items())
 
-    fn_pat = re.compile(r'w(?P<week>[0-9]+)-s(?P<seq>[0-9]+).*')
-    ln_pat = re.compile(r'\s.*"from\s+corrections\.(?P<source>\w+).*import\s+exo_(?P<exo>\w+)')
+    filename_pat = re.compile(r'w(?P<week>[0-9]+)-s(?P<seq>[0-9]+).*')
+    import_line_pat = re.compile(r'from\s+corrections\.(?P<source>(regexp|gen|exo|cls)_\w+)\s+import\s+exo_(?P<exo>\w+)')
 
-    def _scan(self):
-        for notebook in sorted(self.coursedir.glob("w?/w*-x*.ipynb")):
-            match1 = self.fn_pat.match(notebook.stem)
+    def scan_filesystem(self):
+        notebooks = chain(self.coursedir.glob("w?/w*-x*.ipynb"),
+                          self.coursedir.glob("w?/w*-x*.py"))
+        for notebook in sorted(notebooks):
+            debug(f"exomap scanning {notebook}")
+            match1 = self.filename_pat.match(notebook.stem)
             if not match1:
                 print(f"something wrong with {notebook.stem}")
                 exit(1)
             week, seq = match1.groups()
-            for line in notebook.open():
-                match2 = self.ln_pat.match(line)
-                if match2:
-                    source, exo = match2.groups()
-                    self[exo] = week, seq, source
-                elif 'import' in line and 'from' in line:
-                    if DEBUG:
-                        print(f"Warning: ignoring potential exo import\n{line}",
-                              end="")
+            # search indirection
+            # usual use case is a notebook imports an exercise
+            with notebook.open() as feed:
+                for line in feed:
+                    line = line.strip()
+                    match2 = self.import_line_pat.search(line)
+                    if match2:
+                        source = match2.group('source')
+                        exo = match2.group('exo')
+                        self[exo] = week, seq, source
+                    elif 'import' in line and 'from' in line:
+                        debug(f"Warning: ignoring potential exo import ```{line}'''")
+            # search in notebook directly
+            # use case is like exercise Taylor, a notebook has a hidden
+            # cell with code embedded right into it
+            try:
+                source = Source(notebook, self)
+                source.parse(week=week, seq=seq)
+            except Exception as exc:
+                print(f"WHOOPS cannot parse - {type(exc)} {exc}")
 
 
     def all_stems(self, *weeks):
@@ -299,7 +317,7 @@ class Source:                                           # pylint: disable=r0903
         r"\Aw(?P<week>[0-9]+)s(?P<sequence>[0-9]+)_"
     )
 
-    def parse(self):                            # pylint: disable=r0912, r0914
+    def parse(self, week=None, seq=None):                  # pylint: disable=r0912, r0914
         """
         return a tuple of
         * list of all Solution objects
@@ -329,7 +347,14 @@ class Source:                                           # pylint: disable=r0903
                         print(f"{self.path}:{lineno} 'name' missing keyword")
                         continue
                     name = keywords['name']
-                    if 'week' in keywords and 'sequence' in keywords:
+                    # direct insertion of code in a tagged notebook
+                    if week and seq:
+                        debug(f"{self.path}:{lineno} parsing notebook "
+                              f"from week={week} seq={seq}")
+                        self.exomap[name] = (week, seq, self.path.stem)
+                        # for building the solution
+                        keywords.update(dict(week=week, sequence=seq))
+                    elif 'week' in keywords and 'sequence' in keywords:
                         print(f"{self.path}:{lineno} using explicit week and sequence")
                         self.exomap[name] = (keywords['week'],
                                              keywords['sequence'],
@@ -555,6 +580,8 @@ def main():                                      # pylint: disable=r0914, r0915
     coursedir = Path(args.coursedir)
     check_coursedir(coursedir)
     exomap = Exomap(coursedir)
+    exomap.scan_filesystem()
+    debug(f"exomap has {len(exomap)} keys")
     # always store the exo map so we can detect any mishaps
     with Path("exomap.check").open('w') as output:
         output.write(str(exomap) + "\n")
@@ -569,6 +596,7 @@ def main():                                      # pylint: disable=r0914, r0915
             for stem in exomap.all_stems(arg):
                 path = locate_stem(coursedir, stem)
                 input_paths.append(path)
+                debug(input_paths)
         else:
             input_paths.append(Path(arg))
 
