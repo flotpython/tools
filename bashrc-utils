@@ -12,6 +12,15 @@ NORMALIZE_OPTIONS=(--author "Thierry Parmentelat" --author "Arnaud Legout" --ver
 # where to store computed stuff like executed notebooks and tex conversions
 PDFWORKDIR=$TOOLSDIR/pdf/work
 
+function jupytext-stem() {
+    local arg="$1"; shift
+    local stem="$arg"
+    stem=$(basename "$stem" .ipynb)
+    stem=$(basename "$stem" .py)
+    stem=$(basename "$stem" .md)
+    echo $stem
+}
+
 ##########
 function notebooks() {
     if [[ -z "$@" ]]; then
@@ -30,7 +39,7 @@ function notebook-names() {
 
 function notebooks-week() {
     local week=$1
-    (cd $COURSEDIR; git ls-files w${week}/w*-[cx]*.ipynb)
+    (cd $COURSEDIR; git ls-files w${week}/w*-[cx][0-9]*.{ipynb,py,md})
 }
 
 ##########
@@ -90,7 +99,8 @@ function execute-all() {
     done
     for nb in $focus; do
         local fullnb=$COURSEDIR/$nb
-        local stem=$(basename $nb .ipynb)
+        # support for 3 possible notebook extensions
+        local stem=$(jupytext-stem $nb)
         executed="$PDFWORKDIR/$stem.ipynb"
         [ $executed -nt $fullnb ] && echo $executed OK || nbcustomexec.py -e $PDFWORKDIR -d $PDFWORKDIR -v $fullnb || {
             echo failure with $target -- exiting; rm -f $executed; return 1
@@ -104,7 +114,7 @@ function execute-all() {
 # from storing figure files and other artefacts
 function convert-one() {
     local executed=$(basename $1); shift
-    local stem=$(basename $executed .ipynb)
+    local stem=$(jupytext-stem $executed)
     local tex=$stem.tex
     local textmp=$stem.tmp.tex; shift
     echo jupyter nbconvert --to latex $executed
@@ -126,7 +136,7 @@ function convert-all() {
         focus="$@"
     fi
     for name in $focus; do
-        local stem=$(basename $name .ipynb)
+        local stem=$(jupytext-stem $name)
         local executed=$PDFWORKDIR/$stem.ipynb
         local tex=$PDFWORKDIR/$stem.tex
         [ $tex -nt $executed ] && echo $tex OK || convert-one $executed

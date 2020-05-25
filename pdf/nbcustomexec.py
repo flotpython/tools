@@ -19,6 +19,7 @@ from pathlib import Path
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 import nbformat
+import jupytext
 from nbconvert.preprocessors import Preprocessor, ExecutePreprocessor
 
 
@@ -79,7 +80,7 @@ MARKER = "auto-exec-for-latex"
 # helpers
 def load_notebook(path: Path):
     with path.open() as feed:
-        return nbformat.read(feed, as_version=4)
+        return jupytext.read(feed)
 
 def save_notebook(notebook, path: Path):
     with path.open('w') as output:
