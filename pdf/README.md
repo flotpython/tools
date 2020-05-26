@@ -1,5 +1,29 @@
 # HOW TO
 
+## Update May 2020
+
+I took some time to move to a more recent version of nbconvert  
+
+* this involved patching `Python.tex` from the output of a mundane  
+  `jupyter nbconvert --to latex`  
+  I tried to keep this input separate from our local changes
+
+**THIS IS NOT RESOLVED**  
+
+Another problem with inclusion of `.svg` files - that are not natively supported with
+latex (they have no boundingbox); this issue turned out to be a gigantic waste of time  
+* could not make it with using the {svg} package :
+  * requires to run `xelatex` with the `--shell-escape` option
+  * requires separate (and non-trivial) installation of InkScape
+  * that in turn requires patching PATH
+  * and with all this in place it seems like inkscape now has a new command-line
+    interface, and so `includesvg` just won't work as is
+* have also seen references to a Python `cairosvg` package 
+  * that I could install through `pip install`
+  * but that could not load due to a allegedly unknown locale `UTF-8`
+
+So because we only have 4 figures of that sort for now I am just giving up for today.
+
 ## Warning:
 
 Historically, I just wanted to ignore a textual output entirely.
@@ -89,7 +113,6 @@ for symlink in media data; do
     ln -sf $COURSEDIR/$symlink work
 done
 ```
-
 
 *****
 

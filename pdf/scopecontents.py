@@ -22,7 +22,7 @@ def read_title(target_week):
 def notebook_names(target_week, workdir):
     workpath = Path(workdir)
     pattern = f"w{target_week}-s*.tex"
-    for nbpath in workpath.glob(pattern):
+    for nbpath in sorted(workpath.glob(pattern)):
         yield nbpath.stem
 
 

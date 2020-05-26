@@ -19,14 +19,21 @@ from argparse import (ArgumentParser, ArgumentDefaultsHelpFormatter)
 replacements = [
 
     # set all Verbatim (i.e. In[] and Out[]) with a colored frame
-    ('plain',
-     r'\begin{Verbatim}[commandchars=\\\{\}]',
-     r'\begin{Verbatim}[commandchars=\\\{\},frame=single,framerule=0.3mm,rulecolor=\color{cellframecolor}]'),
+#    ('plain',
+#     r'\begin{Verbatim}[commandchars=\\\{\}]',
+#     r'\begin{Verbatim}[commandchars=\\\{\},frame=single,framerule=0.1mm,rulecolor=\color{cellframecolor}]'),
 
     # set all Highlighting (i.e. inserted code) with a colored frame
     ('plain',
      r'\begin{Highlighting}[]',
      r'\begin{Highlighting}[frame=lines,framerule=0.6mm,rulecolor=\color{asisframecolor}]'),
+    
+    # quick and dirty; use 'make' in the media/ subdir in course
+    # so as to produce .png files for all .svg
+    # that can then be included with a regular \includegraphics
+    ('plain',
+     r'.svg',
+     r'.png'),
 
     # this is about removing an extra while line at the end of the
     # 'print' area for each code cell (mind you: not the Out: area)
