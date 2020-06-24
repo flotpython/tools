@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 tool to produce files like e.g.
 w1/w1-s3-av-code.html
@@ -27,9 +28,14 @@ sequence_pattern = r"# w(?P<week>[0-9])s(?P<seq>[0-9])"
 sequence_matcher = re.compile(sequence_pattern)
 
 header = """
-<p style="border: 1px solid black; border-radius: 5px; padding: 10px; background-color: #eee;">
-<b><i>bloc-note pour copier coller le code de la vidéo</i></b>
-</p>
+<style>
+.clipboard {
+    font-size: 11px;
+}
+</style>
+<h3 style="border: 1px solid #66b; border-radius: 5px; padding: 10px; background-color: #eee;">
+<b><i>bloc-note pour copier/coller le code de la vidéo</i></b>
+</h3>
 
 """
 
@@ -38,7 +44,7 @@ def save_sequence(week, seq, lines):
     print(f"using {len(lines)} (markdown) lines to make {filename}")
     text ="".join(lines)
     with Path(filename).open('w') as writer:
-        writer.write(to_html(text))
+        writer.write(f"<div class='clipboard'>{to_html(text)}</div>")
 
 def handle_week(markdown):
     with open(markdown) as feed:
@@ -59,8 +65,9 @@ def handle_week(markdown):
                             print("OOPS !")
                 week, seq = match.groups()
                 #print(f"spotted week={week} seq={seq} with {len(lines)} lines")
-                lines = [line]
+                lines = []
                 lines.append(header)
+                # lines.append(line)
             else:
                 lines.append(line)
         save_sequence(week, seq, lines)
