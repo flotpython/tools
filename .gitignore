@@ -1,10 +1,10 @@
+separate/
+pdf/work*
+stats-python*
 *.pyc
 zz-*
 TAGS
 *.pdf
-pdf/work/
-pdf/work/*.ipynb
-pdf/work/*.tex
 *.tgz
 .du
 *.tex
@@ -13,4 +13,3 @@ pdf/work/*.tex
 *.txt
 *.toc
 *.out
-

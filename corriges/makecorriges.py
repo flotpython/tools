@@ -35,7 +35,7 @@ def locate_stem(coursedir, name):
     coursedir = Path(coursedir)
     stem = Path(name).stem
     for relpath in SOLUTION_PATHS:
-        for filename in [stem, f"{stem}.py"]:
+        for filename in [stem, f"{stem}.py", f"{stem}.md"]:
             candidate = coursedir / relpath / filename
             if candidate.exists():
                 return candidate
@@ -61,7 +61,8 @@ class Exomap(dict):
 
     def scan_filesystem(self):
         notebooks = chain(self.coursedir.glob("w?/w*-x*.ipynb"),
-                          self.coursedir.glob("w?/w*-x*.py"))
+                          self.coursedir.glob("w?/w*-x*.py"),
+                          self.coursedir.glob("w?/w*-x*.md"))
         for notebook in sorted(notebooks):
             debug(f"exomap scanning {notebook}")
             match1 = self.filename_pat.match(notebook.stem)
@@ -203,7 +204,7 @@ label=%(name)s%(more)s%(continued)s - {\small \footnotesize{Semaine} %(week)s \f
         return toc + body
 
     # the validation notebook
-    def add_validation(self, notebook, first):
+    def add_validation(self, notebook, *, first, broken):
         """
         Parameters:
           notebook is a Notebook instance
@@ -220,6 +221,9 @@ label=%(name)s%(more)s%(continued)s - {\small \footnotesize{Semaine} %(week)s \f
             def record(self):
                 notebook.add_code_cell(self.lines)
 
+        module = f"corrections.{self.filename}"
+        solution = self.name
+        exo = f"corrections.{self.filename}.exo_{self.name}"
         # some exercices are so twisted that we can't do anything for them here
         if self.no_validation:
             for _ in range(2):
@@ -230,10 +234,20 @@ label=%(name)s%(more)s%(continued)s - {\small \footnotesize{Semaine} %(week)s \f
             cell.record()
             return
 
+        if broken:
+            cell = Cell()
+            cell.add_line(f"# dummy solution - should be KO")
+            broken = f"{solution}_ko"
+            cell.add_line(
+f"""if not hasattr({module}, '{broken}'):
+    print("{broken} not found")
+else:
+    IPython.display.display({exo}.correction({module}.{broken}))"""
+            )
+            cell.record()
+            return
+
         # the usual case
-        module = f"corrections.{self.filename}"
-        solution = self.name
-        exo = f"corrections.{self.filename}.exo_{self.name}"
         full_solution = solution if first else f"{solution}_{self.more}"
         if self.is_class:
             solution = solution.capitalize()
@@ -252,17 +266,6 @@ label=%(name)s%(more)s%(continued)s - {\small \footnotesize{Semaine} %(week)s \f
         cell.add_line(f"from {module} import {full_solution}")
         cell.add_line(f"{exo}.correction({full_solution})")
         cell.record()
-        if first:
-            cell = Cell()
-            cell.add_line(f"# dummy solution - should be KO")
-            broken = f"{solution}_ko"
-            cell.add_line(
-f"""if not hasattr({module}, '{broken}'):
-    print("{broken} not found")
-else:
-    IPython.display.display({exo}.correction({module}.{broken}))"""
-            )
-            cell.record()
 
 ########################################
     text_format_with = r"""
@@ -520,17 +523,23 @@ class Notebook:
 
         seen = set()
 
+        previous = None
         for solution in solutions:
             # we ignore continuation chunks 
-            # like e.g. more=bis-suite 
+            # like e.g. continued=true 
             # that can be found with the cesar/vigenere exercise
             # this is an artificial splitting for pagebreaking
             # but is not a new solution
             if solution.continued:
                 continue
             first = solution.name not in seen
-            solution.add_validation(self, first=first)
+            if first and previous:
+                previous.add_validation(self, first=None, broken=True)
+            solution.add_validation(self, first=first, broken=None)
             seen.add(solution.name)
+            previous = solution
+        if previous:
+            previous.add_validation(self, first=None, broken=True)
 
         # JSON won't like an extra comma
         with self.path.open('w') as output:
