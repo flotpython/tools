@@ -257,6 +257,7 @@ else:
             notebook.add_text_cell("*****")
             cell = Cell()
             cell.add_line(f"########## exo {full_solution} ##########")
+            cell.add_line(f"import IPython")
             cell.add_line(f"import {module}")
             if self.no_example is None:
                 cell.add_line(f"{exo}.example()")
