@@ -39,10 +39,24 @@ header = """
 
 """
 
+def sanitize(lines):
+    """
+    remove any trailing empty line
+    """
+    while lines:
+        last = lines[-1]
+        if not last.strip():
+            lines.pop()
+        else:
+            break
+    return lines
+
+
 def save_sequence(week, seq, lines):
     filename = f"w{week}/w{week}-s{seq}-av-code.html"
     print(f"using {len(lines)} (markdown) lines to make {filename}")
-    text ="".join(lines)
+    text ="".join(sanitize(lines))
+    #print(text)
     with Path(filename).open('w') as writer:
         writer.write(f"<div class='clipboard'>{to_html(text)}</div>")
 
