@@ -26,6 +26,7 @@ assert IPython.version_info[0] >= 4
 
 import nbformat
 from nbformat.notebooknode import NotebookNode
+import jupytext
 
 # not customizable yet
 # at the notebook level
@@ -126,14 +127,16 @@ class Notebook:
         if name.endswith(".ipynb"):
             name = name.replace(".ipynb", "")
         self.name = name
-        self.filename = "{}.ipynb".format(self.name)
+        #self.filename = "{}.ipynb".format(self.name)
+        self.filename = self.name
         self.verbose = verbose
 
 
     def parse(self):
         try:
             with open(self.filename) as f:
-                self.notebook = nbformat.reader.read(f)
+                #self.notebook = nbformat.reader.read(f)
+                self.notebook = jupytext.read(f)
 
         except:
             print("Could not parse {}".format(self.filename))
