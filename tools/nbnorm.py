@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-
 import sys
-import os
-import tempfile
-import shutil
+# import os
+# import tempfile
+# import shutil
 import re
 from pathlib import Path
 from enum import Enum
 
-from util import replace_file_with_string, xpath, truncate
+from util import xpath, xpath_create # replace_file_with_string, truncate
 
 ####################
 # MOOC session number
 default_version = "1.0"
-
-notebookname = "notebookname"
 
 ####################
 import IPython
@@ -147,8 +143,11 @@ class Notebook:
     def xpath(self, path):
         return xpath(self.notebook, path)
 
+    def xpath_create(self, path, leaf_type):
+        return xpath_create(self.notebook, path, leaf_type)
+
     def cells(self):
-        return self.xpath(['cells'])
+        return self.xpath('cells')
 
     def cell_contents(self, cell):
         return cell['source']
@@ -158,7 +157,7 @@ class Notebook:
         for cell in self.cells():
             #            print("Looking in cell ", cell)
             if cell['cell_type'] == 'heading' and cell['level'] == 1:
-                return xpath(cell, ['source'])
+                return xpath(cell, 'source')
             elif cell['cell_type'] == 'markdown':
                 lines = self.cell_contents(cell).split("\n")
                 if len(lines) == 1:
@@ -167,24 +166,20 @@ class Notebook:
                         return line[2:]
         return "NO HEADING 1 found"
 
-    def set_name_from_heading1(self, force_name):
+    def set_title_from_heading1(self, force_title):
         """
-        set 'name' in notebook metadata from the first heading 1 cell
-        if force_name is provided, set 'notebookname' accordingly
-        if force_name is None or False, set 'notebookname' only if it is not set
+        set 'nbhosting.title' in notebook metadata from the first heading 1 cell
+        if force_title is provided, always set title
+        if force_title is None or False, set 'nbhosting.title' only if it is not set
         """
-        metadata = self.xpath(['metadata'])
-        if metadata.get(notebookname, "") and not force_name:
+        title = self.xpath_create('metadata.nbhosting.title', str)
+        if title and not force_title:
             pass
         else:
-            new_name = force_name if force_name else self.first_heading1()
-            metadata[notebookname] = new_name
-        # remove 'name' metadata that might come from previous versions of this
-        # script
-        if 'name' in metadata:
-            del metadata['name']
+            new_name = force_title if force_title else self.first_heading1()
+            self.xpath('metadata.nbhosting')['title'] = new_name
         if self.verbose:
-            print("{} -> {}".format(self.filename, metadata[notebookname]))
+            print(f"{self.filename} -> {self.xpath('metadata.nbhosting.title')}")
 
 
     def set_version(self, version=default_version, force_version=False):
@@ -310,7 +305,7 @@ class Notebook:
                 NotebookNode({
                     "cell_type": "markdown",
                     "metadata": {},
-                    "source": title_lines,
+                    "source": "\n".join(title_lines),
                 }))
 
 
@@ -464,29 +459,22 @@ class Notebook:
                     print(f"DIRURL: {self.name}:{index} -> {line}")
 
 
-    def save(self, keep_alt=False):
-        if keep_alt:
-            # xxx store in alt filename
-            outfilename = "{}.alt.ipynb".format(self.name)
-        else:
-            outfilename = self.filename
-        # don't specify output version for now
-        new_contents = nbformat.writes(self.notebook) + "\n"
-        if replace_file_with_string(outfilename, new_contents):
-            print("{} saved into {}".format(self.name, outfilename))
+    def save(self):
+        jupytext.write(self.notebook, self.filename)
+        print("{} saved".format(self.filename))
 
 
-    def full_monty(self, *, force_name_version, version,
+    def full_monty(self, *, force_title_version, version,
                    licence, authors, logo_path,
                    kernel, rise, ipypublish, exts, backquotes, urls):
         self.parse()
         self.clear_all_outputs()
         self.remove_empty_cells()
-        self.set_name_from_heading1(force_name=force_name_version)
+        self.set_title_from_heading1(force_title=force_title_version)
         if version is None:
             self.set_version()
         else:
-            self.set_version(version, force_version=force_name_version)
+            self.set_version(version, force_version=force_title_version)
         self.handle_kernelspec(kernel)
         self.fill_rise_metadata(rise)
         self.fill_extensions_metadata(exts)
@@ -512,7 +500,7 @@ from argparse import ArgumentParser
 
 usage = """normalize notebooks
  * Metadata
-   * checks for notebookname (from first heading1 if missing, or from forced name on the command line)
+   * checks for nbhosting.title (from first heading1 if missing, or from forced name on the command line)
    * always checks for kernelspec metadata
    * sets version if specified on the command-line
  * Contents
@@ -524,8 +512,8 @@ usage = """normalize notebooks
 def main():
     parser = ArgumentParser(usage=usage)
     parser.add_argument(
-        "-f", "--force", action="store", dest="force_name_version", default=None,
-        help="force writing notebookname, or version, when provided, even if already present")
+        "-f", "--force", action="store", dest="force_title_version", default=None,
+        help="force writing nbhosting.title, or version, when provided, even if already present")
     parser.add_argument(
         "-t", "--licence-text", dest='licence', default=default_licence,
         help="the text for the licence string in titles")
@@ -555,7 +543,7 @@ def main():
         help="tries to spot direct URLs, i.e. used outside of markdown []()")
     parser.add_argument(
         "-v", "--verbose", dest="verbose", action="store_true", default=False,
-        help="show current notebookname")
+        help="show current nbhosting.title")
     parser.add_argument(
         "-V", "--version", dest="version", action="store", default=None,
         help="set version in notebook metadata")
@@ -576,7 +564,7 @@ def main():
         if args.verbose:
             print("{} is opening notebook".format(sys.argv[0]), notebook)
         full_monty(
-            notebook, force_name_version=args.force_name_version,
+            notebook, force_title_version=args.force_title_version,
             version=args.version, licence=args.licence, authors=args.authors,
             logo_path=args.logo_path, kernel=args.kernel,
             rise=args.rise, ipypublish=args.ipypublish,
