@@ -55,9 +55,6 @@ extensions_metadata_cell_padding = {
     }
 }
 
-default_licence = 'Licence CC BY-NC-ND'
-
-
 ####################
 # padding is a set of keys/subkeys
 # that we want to make sure are defined
@@ -220,55 +217,38 @@ class Notebook:
             pad_metadata(cell['metadata'], extensions_metadata_cell_padding)
 
 
-    def ensure_title(self, licence, authors, logo_path):
+    def ensure_license(self):
         """
-        make sure the first cell is a author + licence cell
+        make sure one of the first cells is a license cell
+
+        the actual text is searched in a file named .license
         """
 
-        # the title cell has 3 parts that are equidistant
-        # xxx it looks like this <style> tag somehow gets
-        # trimmed away when rendered inside of edx
-        # so I had to add it in nbhosting's custom.css as well
+        license_path = Path(".license")
 
-        def title_cell(licence, authors, logo_path):
-            cell = ''
-            cell += f'<div class="licence">\n'
-            cell += f'<span>{licence}</span>\n'
-            if authors:
-                cell += f'<span>{" &amp; ".join(authors)}</span>\n'
-            if logo_path:
-                cell += f'<span><img src="{logo_path}" /></span>\n'
-            cell += f'</div>'
-            return cell
+        if not license_path.exists():
+            raise FileNotFoundError("the license feature requieres a .license file")
 
+        with license_path.open() as feed:
+            license_text = feed.read()
 
         # a bit rustic but good enough
-        def is_title_cell(cell):
-            # for legacy - notebooks tweaked with older versions
-            # of this tool, we want to consider first cells that have
-            # Licence as being our title cell as well
-            return cell['cell_type'] == 'markdown' \
-                and (cell['source'].find("title-slide") >= 0
-                     or cell['source'].lower().find("licence") >= 0)
+        def is_license_cell(cell):
+            source = cell['source'].lower()
+            return 'licence' in source or 'licence' in source
 
-        # when opened interactively and then saved again, this is how the result looks like
-        expected_title_cell = title_cell(licence, authors, logo_path)
-        title_lines = [line + "\n" for line in expected_title_cell.split("\n")]
-        # remove last \n
-        title_lines[-1] = title_lines[-1][:-1]
-
-        first_cell = self.cells()[0]
-        # cell.source is a list of strings
-        if is_title_cell(first_cell):
-            # licence cell already here, just overwrite contents to latest version
-            first_cell['source'] = title_lines
+        # allow the license to appear as first or second
+        for cell in self.cells()[:2]:
+            if is_license_cell(cell):
+                cell['source'] = license_text
+                break
         else:
             self.cells().insert(
                 0,
                 NotebookNode({
                     "cell_type": "markdown",
                     "metadata": {},
-                    "source": "\n".join(title_lines),
+                    "source": license_text,
                 }))
 
 
@@ -427,8 +407,7 @@ class Notebook:
         print("{} saved".format(self.filename))
 
 
-    def full_monty(self, *, force_title,
-                   licence, authors, logo_path,
+    def full_monty(self, *, force_title, do_license,
                    kernel, rise, exts, backquotes, urls):
         self.parse()
         self.clear_all_outputs()
@@ -437,7 +416,8 @@ class Notebook:
         self.handle_kernelspec(kernel)
         self.fill_rise_metadata(rise)
         self.fill_extensions_metadata(exts)
-        self.ensure_title(licence, authors, logo_path)
+        if do_license:
+            self.ensure_license()
         self.fix_ill_formed_markdown_bullets()
         self.spot_long_code_cells()
         if backquotes:
@@ -461,7 +441,7 @@ usage = """normalize notebooks
    * checks for nbhosting.title (from first heading1 if missing, or from forced name on the command line)
    * always checks for kernelspec metadata
  * Contents
-   * makes sure a correct licence line is inserted
+   * makes sure a correct license cell is inserted - defined in .license
    * clears all outputs
    * removes empty code cells
 """
@@ -472,14 +452,8 @@ def main():
         "-f", "--force", action="store", dest="force_title", default=None,
         help="force writing nbhosting.title, when provided, even if already present")
     parser.add_argument(
-        "-t", "--licence-text", dest='licence', default=default_licence,
-        help="the text for the licence string in titles")
-    parser.add_argument(
-        "-a", "--author", dest='authors', action="append", default=[], type=str,
-        help="define list of authors")
-    parser.add_argument(
-        "-l", "--logo-path", dest='logo_path', action="store", default="", type=str,
-        help="path to use when inserting the logo img (should be about 25px high)")
+        "-l", "--do-license", dest='do_license', default=False, action='store_true',
+        help="make sure the license cell is up-to-date with .license")
     parser.add_argument(
         "-k", "--kernel", dest='kernel', type=int, default=0, choices=(2, 3),
         help="Set to use python2 or 3; remains unchanged if not set")
@@ -516,8 +490,7 @@ def main():
             print("{} is opening notebook".format(sys.argv[0]), notebook)
         full_monty(
             notebook, force_title=args.force_title,
-            licence=args.licence, authors=args.authors,
-            logo_path=args.logo_path, kernel=args.kernel,
+            do_license=args.do_license, kernel=args.kernel,
             rise=args.rise,
             exts=args.exts, backquotes=args.backquotes,
             urls=args.urls, verbose=args.verbose)
