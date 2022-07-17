@@ -159,40 +159,6 @@ class Notebook:
             print(f"{self.filename} -> {self.xpath('metadata.nbhosting.title')}")
 
 
-    # the kernel parameter here is the one that comes
-    # from main, i.e. integers that can be
-    # 0 if we want to leave this untouched
-    #   (but that still means creating the kernelspec metadata if missing)
-    # 2 for python2
-    # 3 for python3
-    def handle_kernelspec(self, kernel):
-        kernelspec2 = {
-            "display_name": "Python 2",
-            "language": "python",
-            "name": "python2",
-        }
-        kernelspec3 = {
-            "display_name": "Python 3",
-            "language": "python",
-            "name": "python3",
-        }
-        metadata = self.xpath(['metadata'])
-        # don't touch anything if kernel is not specified
-        # and metadata already has a kernelspec
-        if 'kernelspec' in metadata and kernel == 0:
-            return
-        newkernelspec = kernelspec2 if kernel <= 2 else kernelspec3
-        # is there really a change ?
-        if 'kernelspec' not in metadata or metadata['kernelspec'] != newkernelspec:
-            # if we're here, we're about to mess with the kernelspec
-            # and so language_info' is irrelevant
-            if 'language_info' in metadata:
-                del metadata['language_info']
-            if self.verbose:
-                print("setting kernel {}".format(newkernelspec['name']))
-        metadata['kernelspec'] = newkernelspec
-
-
     def fill_rise_metadata(self, rise):
         """
         if rise is set:
@@ -407,13 +373,11 @@ class Notebook:
         print("{} saved".format(self.filename))
 
 
-    def full_monty(self, *, force_title, do_license,
-                   kernel, rise, exts, backquotes, urls):
+    def full_monty(self, *, force_title, do_license, rise, exts, backquotes, urls):
         self.parse()
         self.clear_all_outputs()
         self.remove_empty_cells()
         self.set_title_from_heading1(force_title=force_title)
-        self.handle_kernelspec(kernel)
         self.fill_rise_metadata(rise)
         self.fill_extensions_metadata(exts)
         if do_license:
@@ -439,7 +403,6 @@ from argparse import ArgumentParser
 usage = """normalize notebooks
  * Metadata
    * checks for nbhosting.title (from first heading1 if missing, or from forced name on the command line)
-   * always checks for kernelspec metadata
  * Contents
    * makes sure a correct license cell is inserted - defined in .license
    * clears all outputs
@@ -454,9 +417,6 @@ def main():
     parser.add_argument(
         "-l", "--do-license", dest='do_license', default=False, action='store_true',
         help="make sure the license cell is up-to-date with .license")
-    parser.add_argument(
-        "-k", "--kernel", dest='kernel', type=int, default=0, choices=(2, 3),
-        help="Set to use python2 or 3; remains unchanged if not set")
     parser.add_argument(
         "-r", "--rise", dest='rise', default=False, action='store_true',
         help="fill in RISE/livereveal metadata with hard-wired settings")
@@ -490,7 +450,7 @@ def main():
             print("{} is opening notebook".format(sys.argv[0]), notebook)
         full_monty(
             notebook, force_title=args.force_title,
-            do_license=args.do_license, kernel=args.kernel,
+            do_license=args.do_license,
             rise=args.rise,
             exts=args.exts, backquotes=args.backquotes,
             urls=args.urls, verbose=args.verbose)
