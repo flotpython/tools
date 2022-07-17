@@ -55,17 +55,6 @@ extensions_metadata_cell_padding = {
     }
 }
 
-ipypublish_metadata_padding = {
-    "ipub": {
-        "sphinx": {
-            "toggle_input": True,
-            "toggle_output": True,
-            "toggle_input_all": True,
-            "toggle_output_all": True
-        }
-    }
-}
-
 default_licence = 'Licence CC BY-NC-ND'
 
 
@@ -229,17 +218,6 @@ class Notebook:
             return
         for cell in self.cells():
             pad_metadata(cell['metadata'], extensions_metadata_cell_padding)
-
-
-    def fill_ipypublish_metadata(self, ipypublish):
-        """
-        if exts is set, fill each cell metadata's with a hard-wired
-        set of defaults for extensions; this is to minimize git diffs
-        """
-        if not ipypublish:
-            return
-        metadata = self.notebook['metadata']
-        pad_metadata(metadata, ipypublish_metadata_padding)
 
 
     def ensure_title(self, licence, authors, logo_path):
@@ -451,7 +429,7 @@ class Notebook:
 
     def full_monty(self, *, force_title,
                    licence, authors, logo_path,
-                   kernel, rise, ipypublish, exts, backquotes, urls):
+                   kernel, rise, exts, backquotes, urls):
         self.parse()
         self.clear_all_outputs()
         self.remove_empty_cells()
@@ -459,7 +437,6 @@ class Notebook:
         self.handle_kernelspec(kernel)
         self.fill_rise_metadata(rise)
         self.fill_extensions_metadata(exts)
-        self.fill_ipypublish_metadata(ipypublish)
         self.ensure_title(licence, authors, logo_path)
         self.fix_ill_formed_markdown_bullets()
         self.spot_long_code_cells()
@@ -510,9 +487,6 @@ def main():
         "-r", "--rise", dest='rise', default=False, action='store_true',
         help="fill in RISE/livereveal metadata with hard-wired settings")
     parser.add_argument(
-        "--ipypublish", default=False, action='store_true',
-        help="fill in ipypublish metadata with hard-wired settings")
-    parser.add_argument(
         "-e", "--extensions", dest='exts', action='store_true', default=False,
         help="fill cell metadata for extensions, if missing")
     parser.add_argument(
@@ -544,7 +518,7 @@ def main():
             notebook, force_title=args.force_title,
             licence=args.licence, authors=args.authors,
             logo_path=args.logo_path, kernel=args.kernel,
-            rise=args.rise, ipypublish=args.ipypublish,
+            rise=args.rise,
             exts=args.exts, backquotes=args.backquotes,
             urls=args.urls, verbose=args.verbose)
 
