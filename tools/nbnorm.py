@@ -11,10 +11,6 @@ from enum import Enum
 from util import xpath, xpath_create # replace_file_with_string, truncate
 
 ####################
-# MOOC session number
-default_version = "1.0"
-
-####################
 import IPython
 
 # we drop older versions, requires IPython v4
@@ -35,11 +31,6 @@ rise_metadata_padding = {
         "slideNumber": "c/t",
         "transition": "cube",
     },
-#        "auto_select" : "code",
-#        "auto_select_fragment" : True,
-#        "slideNumber" : False,
-#        "controls" : False,
-#    },
 }
 
 # this was for the video slides, it's bad on regular notebooks
@@ -180,12 +171,6 @@ class Notebook:
             self.xpath('metadata.nbhosting')['title'] = new_name
         if self.verbose:
             print(f"{self.filename} -> {self.xpath('metadata.nbhosting.title')}")
-
-
-    def set_version(self, version=default_version, force_version=False):
-        metadata = self.xpath(['metadata'])
-        if 'version' not in metadata or force_version:
-            metadata['version'] = version
 
 
     # the kernel parameter here is the one that comes
@@ -464,17 +449,13 @@ class Notebook:
         print("{} saved".format(self.filename))
 
 
-    def full_monty(self, *, force_title_version, version,
+    def full_monty(self, *, force_title,
                    licence, authors, logo_path,
                    kernel, rise, ipypublish, exts, backquotes, urls):
         self.parse()
         self.clear_all_outputs()
         self.remove_empty_cells()
-        self.set_title_from_heading1(force_title=force_title_version)
-        if version is None:
-            self.set_version()
-        else:
-            self.set_version(version, force_version=force_title_version)
+        self.set_title_from_heading1(force_title=force_title)
         self.handle_kernelspec(kernel)
         self.fill_rise_metadata(rise)
         self.fill_extensions_metadata(exts)
@@ -502,7 +483,6 @@ usage = """normalize notebooks
  * Metadata
    * checks for nbhosting.title (from first heading1 if missing, or from forced name on the command line)
    * always checks for kernelspec metadata
-   * sets version if specified on the command-line
  * Contents
    * makes sure a correct licence line is inserted
    * clears all outputs
@@ -512,8 +492,8 @@ usage = """normalize notebooks
 def main():
     parser = ArgumentParser(usage=usage)
     parser.add_argument(
-        "-f", "--force", action="store", dest="force_title_version", default=None,
-        help="force writing nbhosting.title, or version, when provided, even if already present")
+        "-f", "--force", action="store", dest="force_title", default=None,
+        help="force writing nbhosting.title, when provided, even if already present")
     parser.add_argument(
         "-t", "--licence-text", dest='licence', default=default_licence,
         help="the text for the licence string in titles")
@@ -545,9 +525,6 @@ def main():
         "-v", "--verbose", dest="verbose", action="store_true", default=False,
         help="show current nbhosting.title")
     parser.add_argument(
-        "-V", "--version", dest="version", action="store", default=None,
-        help="set version in notebook metadata")
-    parser.add_argument(
         "notebooks", metavar="IPYNBS", nargs="*",
         help="the notebooks to normalize")
 
@@ -564,8 +541,8 @@ def main():
         if args.verbose:
             print("{} is opening notebook".format(sys.argv[0]), notebook)
         full_monty(
-            notebook, force_title_version=args.force_title_version,
-            version=args.version, licence=args.licence, authors=args.authors,
+            notebook, force_title=args.force_title,
+            licence=args.licence, authors=args.authors,
             logo_path=args.logo_path, kernel=args.kernel,
             rise=args.rise, ipypublish=args.ipypublish,
             exts=args.exts, backquotes=args.backquotes,
