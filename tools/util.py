@@ -43,6 +43,7 @@ def xpath_create(top, path, leaf_type):
             if step not in result:
                 result[step] = leaf_type() if (index == len(path) - 1) else {}
             result = result[step]
+    return result
 
 
 def truncate(s, n):
