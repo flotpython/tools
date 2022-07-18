@@ -183,6 +183,41 @@ class Notebook:
             pad_metadata(cell['metadata'], extensions_metadata_cell_padding)
 
 
+    def ensure_style(self, style_rank):
+        """
+        make sure one of the first cells is a style cell
+
+        the actual text is searched in a file named .style
+        """
+
+        style_path = Path(".style")
+
+        if not style_path.exists():
+            raise FileNotFoundError("the style feature requieres a .style file")
+
+        with style_path.open() as feed:
+            style_text = feed.read()
+
+        # a bit rustic but good enough
+        def is_style_cell(cell):
+            source = cell['source']
+            return 'HTML(' in source
+
+        # allow the style to appear as first or second
+        for cell in self.cells()[:2]:
+            if is_style_cell(cell):
+                cell['source'] = style_text
+                break
+        else:
+            self.cells().insert(
+                style_rank-1,
+                NotebookNode({
+                    "cell_type": "code",
+                    "metadata": {},
+                    "source": style_text,
+                }))
+
+
     def ensure_license(self, license_rank):
         """
         make sure one of the first cells is a license cell
@@ -373,13 +408,15 @@ class Notebook:
         print(f"{self.filename} saved")
 
 
-    def full_monty(self, *, force_title, license_rank, rise, exts, backquotes, urls):
+    def full_monty(self, *, force_title, style_rank, license_rank, rise, exts, backquotes, urls):
         self.parse()
         self.clear_all_outputs()
         self.remove_empty_cells()
         self.set_title_from_heading1(force_title=force_title)
         self.fill_rise_metadata(rise)
         self.fill_extensions_metadata(exts)
+        if style_rank is not None:
+            self.ensure_style(style_rank)
         if license_rank is not None:
             self.ensure_license(license_rank)
         self.fix_ill_formed_markdown_bullets()
@@ -419,7 +456,12 @@ def main():
                 even if already present -
                 provide the title, or set to 'h1' to use the first header""")
     parser.add_argument(
-        "-l", "--license-rank", dest='license_rank', default=None, action='store',
+        "-s", "--style-rank", dest='style_rank', default=None, action='store', type=int,
+        help="""make sure the style cell is up-to-date with .style;
+                provide the style rank, used only for inserting a missing cell;
+                default is to not manage style""")
+    parser.add_argument(
+        "-l", "--license-rank", dest='license_rank', default=None, action='store', type=int,
         help="""make sure the license cell is up-to-date with .license;
                 provide the license cell rank, used only for inserting a missing cell;
                 default is to not manage license""")
@@ -449,7 +491,7 @@ def main():
             print(f"{sys.argv[0]} is opening notebook {notebook}")
         full_monty(
             notebook, force_title=args.force_title,
-            license_rank=args.license_rank,
+            license_rank=args.license_rank, style_rank=args.style_rank,
             rise=args.rise,
             exts=args.exts, backquotes=args.backquotes,
             urls=args.urls, verbose=args.verbose)
