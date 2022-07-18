@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-# import os
-# import tempfile
-# import shutil
 import re
 from pathlib import Path
 from enum import Enum
@@ -112,7 +109,7 @@ class Notebook:
                 self.notebook = jupytext.read(f)
 
         except:
-            print("Could not parse {}".format(self.filename))
+            print(f"Could not parse {self.filename}")
             import traceback
             traceback.print_exc()
 
@@ -132,15 +129,13 @@ class Notebook:
 
     def first_heading1(self):
         for cell in self.cells():
-            #            print("Looking in cell ", cell)
             if cell['cell_type'] == 'heading' and cell['level'] == 1:
                 return xpath(cell, 'source')
             elif cell['cell_type'] == 'markdown':
                 lines = self.cell_contents(cell).split("\n")
-                if len(lines) == 1:
-                    line = lines[0]
-                    if line.startswith('# '):
-                        return line[2:]
+                line = lines[0]
+                if line.startswith('# '):
+                    return line[2:]
         return "NO HEADING 1 found"
 
     def set_title_from_heading1(self, force_title):
@@ -150,13 +145,18 @@ class Notebook:
         if force_title is None or False, set 'nbhosting.title' only if it is not set
         """
         title = self.xpath_create('metadata.nbhosting.title', str)
-        if title and not force_title:
+        if title and force_title is None:
             pass
         else:
-            new_name = force_title if force_title else self.first_heading1()
+            if force_title == 'h1':
+                new_name = self.first_heading1()
+            elif force_title is not None:
+                new_name = force_title
+            else:
+                new_name = self.first_heading1()
             self.xpath('metadata.nbhosting')['title'] = new_name
         if self.verbose:
-            print(f"{self.filename} -> {self.xpath('metadata.nbhosting.title')}")
+            print(f"{self.filename} title -> {self.xpath('metadata.nbhosting.title')}")
 
 
     def fill_rise_metadata(self, rise):
@@ -183,7 +183,7 @@ class Notebook:
             pad_metadata(cell['metadata'], extensions_metadata_cell_padding)
 
 
-    def ensure_license(self):
+    def ensure_license(self, license_rank):
         """
         make sure one of the first cells is a license cell
 
@@ -210,7 +210,7 @@ class Notebook:
                 break
         else:
             self.cells().insert(
-                0,
+                license_rank-1,
                 NotebookNode({
                     "cell_type": "markdown",
                     "metadata": {},
@@ -254,7 +254,7 @@ class Notebook:
         for cell_to_remove in cells_to_remove:
             self.cells().remove(cell_to_remove)
         if nb_empty:
-            print("found and removed {} empty cells".format(nb_empty))
+            print(f"found and removed {nb_empty} empty cells")
 
     re_blank = re.compile(r"\A\s*\Z")
     re_bullet = re.compile(r"\A\s*\*\s")
@@ -370,18 +370,18 @@ class Notebook:
 
     def save(self):
         jupytext.write(self.notebook, self.filename)
-        print("{} saved".format(self.filename))
+        print(f"{self.filename} saved")
 
 
-    def full_monty(self, *, force_title, do_license, rise, exts, backquotes, urls):
+    def full_monty(self, *, force_title, license_rank, rise, exts, backquotes, urls):
         self.parse()
         self.clear_all_outputs()
         self.remove_empty_cells()
         self.set_title_from_heading1(force_title=force_title)
         self.fill_rise_metadata(rise)
         self.fill_extensions_metadata(exts)
-        if do_license:
-            self.ensure_license()
+        if license_rank is not None:
+            self.ensure_license(license_rank)
         self.fix_ill_formed_markdown_bullets()
         self.spot_long_code_cells()
         if backquotes:
@@ -407,16 +407,22 @@ usage = """normalize notebooks
    * makes sure a correct license cell is inserted - defined in .license
    * clears all outputs
    * removes empty code cells
+* Miscell
+  * also notify of miscell common markdown errors
 """
 
 def main():
     parser = ArgumentParser(usage=usage)
     parser.add_argument(
-        "-f", "--force", action="store", dest="force_title", default=None,
-        help="force writing nbhosting.title, when provided, even if already present")
+        "-t", "--force-title", action="store", dest="force_title", default=None,
+        help="""force writing nbhosting.title, when provided,
+                even if already present -
+                provide the title, or set to 'h1' to use the first header""")
     parser.add_argument(
-        "-l", "--do-license", dest='do_license', default=False, action='store_true',
-        help="make sure the license cell is up-to-date with .license")
+        "-l", "--license-rank", dest='license_rank', default=None, action='store',
+        help="""make sure the license cell is up-to-date with .license;
+                provide the license cell rank, used only for inserting a missing cell;
+                default is to not manage license""")
     parser.add_argument(
         "-r", "--rise", dest='rise', default=False, action='store_true',
         help="fill in RISE/livereveal metadata with hard-wired settings")
@@ -433,24 +439,17 @@ def main():
         "-v", "--verbose", dest="verbose", action="store_true", default=False,
         help="show current nbhosting.title")
     parser.add_argument(
-        "notebooks", metavar="IPYNBS", nargs="*",
+        "notebooks", nargs="+",
         help="the notebooks to normalize")
 
     args = parser.parse_args()
 
-    if not args.notebooks:
-        notebooks = Path().glob("*.ipynb")
-        notebooks = str(notebook for notebook in notebooks)
-
     for notebook in args.notebooks:
-        if notebook.find('.alt') >= 0:
-            print('ignoring', notebook)
-            continue
         if args.verbose:
-            print("{} is opening notebook".format(sys.argv[0]), notebook)
+            print(f"{sys.argv[0]} is opening notebook {notebook}")
         full_monty(
             notebook, force_title=args.force_title,
-            do_license=args.do_license,
+            license_rank=args.license_rank,
             rise=args.rise,
             exts=args.exts, backquotes=args.backquotes,
             urls=args.urls, verbose=args.verbose)
