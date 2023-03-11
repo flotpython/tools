@@ -1,5 +1,19 @@
 #! /usr/bin/env python
 
+"""
+helpful to reorder notebooks in a course
+see the .example input for how the moves are specified
+
+it will just print the bash commands to
+- do the renaming
+- alter the nbhosting index
+- run make to rebuild the book toc from that
+
+it will not
+- rename occurrences of the matched files in the repo
+- see rename-includes.py for that
+"""
+
 import sys
 from pathlib import Path
 from argparse import ArgumentParser
