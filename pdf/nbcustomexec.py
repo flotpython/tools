@@ -54,7 +54,7 @@ CODE_TO_EXEC_BEFORE = "latex:hidden-code-before"
 CODE_TO_EXEC_AFTER = "latex:hidden-code-after"
 # tweaks made with the 3 above keys are usually made plain
 # by adding a comment; except if this is set
-SILENT_HIDDEN_CODE =  "latex:hidden-silent"
+SILENT_HIDDEN_CODE = "latex:hidden-silent"
 
 # replace on the fly
 CODE_REPLACEMENT = "latex:replace"
@@ -77,10 +77,12 @@ MARKER = "auto-exec-for-latex"
 
 ##########
 
+
 # helpers
 def load_notebook(path: Path):
     with path.open() as feed:
         return jupytext.read(feed)
+
 
 def save_notebook(notebook, path: Path):
     with path.open('w') as output:
@@ -136,6 +138,7 @@ class CustomExecPreprocessor(ExecutePreprocessor):
         # even if we skip a cell, we need to comply with the protocol
         # implemented in the superclass, which expects
         ignored_result = cell, resources
+
         def mark_ignored(cell):
             if cell.cell_type != 'code':
                 return
@@ -182,7 +185,6 @@ class CustomExecPreprocessor(ExecutePreprocessor):
                     counter = 4
             return result
 
-
         def break_lines_in_output(cell, width):
             if cell.cell_type != 'code':
                 return
@@ -194,7 +196,7 @@ class CustomExecPreprocessor(ExecutePreprocessor):
                     output.text = break_line(
                         output.text, width)
                 else:
-                    #print(f'output_type = {output.output_type}')
+                    # print(f'output_type = {output.output_type}')
                     pass
 
         initial_code = None
@@ -206,7 +208,7 @@ class CustomExecPreprocessor(ExecutePreprocessor):
                 return ignored_result
 
         metadata = cell.metadata
-        for key, value in metadata.items():
+        for key, _ in metadata.items():
 
             if key == IGNORE_IF_PRESENT_IN_METADATA:
                 mark_ignored(cell)
@@ -228,6 +230,7 @@ class CustomExecPreprocessor(ExecutePreprocessor):
                 replacements = metadata[key]
                 cell.source = self.do_replacement(cell.source, replacements)
 
+        # print(f"{cell=}, {metadata=}")
         execution_result = ExecutePreprocessor.preprocess_cell(
             self, cell, resources, cell_index)
 
@@ -245,7 +248,6 @@ class CustomExecPreprocessor(ExecutePreprocessor):
 
         return execution_result
 
-# main
 
 def main():
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
@@ -288,6 +290,7 @@ def main():
         execproc = CustomExecPreprocessor(timeout=600, kernel_name='python3')
         notebook, resources = execproc.preprocess(notebook, resources)
         save_notebook(notebook, output)
+
 
 if __name__ == '__main__':
     main()

@@ -1,5 +1,17 @@
 # HOW TO
 
+## Update July 2023
+
+hopefuly the last one...
+
+* due to space limitations, the complete pdf covers
+  only the first 7 weeks
+
+* about svg insertion
+  * uninstall the Inkspace app (if present)
+  * use `brew install inkscape` to install the command-line tool
+  * result is not perfect at all, but it's OK (only 2 notebooks, and 4 figures)
+
 ## Update May 2020
 
 I took some time to move to a more recent version of nbconvert  
@@ -122,13 +134,13 @@ done
 
 This file is at the root of the flotpython-tools repo
 
-```
+```bash
 source ../bashrc-utils
 ```
 
 #### execute notebook_names
 
-```
+```bash
 execute-all
 ```
 
@@ -139,7 +151,7 @@ This command will recompute all executed notebooks;
 
 #### convert to $\LaTeX$
 
-```
+```bash
 convert-all
 ```
 
@@ -151,9 +163,17 @@ Likewise:
   * (a) removing extra header and footer stuff, and
   * (b) tweaking the output to suit our aesthetic tastes.
 
+#### shortcut
+
+```bash
+prepare-all
+```
+
+just does `execute-all` + `convert-all`
+
 #### selecting scope - in weeks
 
-```
+```bash
 scopecontents.py
 # or
 scopecontents.py 1 5
@@ -163,35 +183,34 @@ scopecontents.py --from 1 --to 6
 
 #### rebuild
 
-```
-latex-all
+with the config chosen above with scopecontents.py , rebuild the pdf
+
+```bash
+latex-current
 ```
 
 Run several times (twice should be enough, 3 times to be safe) - as always, to get cross references - like table of contents - right.
 
-#### shortcut
+#### doing PDFs
 
+```bash
+week 6
 ```
-pdf-all
-```
 
-just does `execute-all` + `convert-all` + `latex-all`
-
-#### the full monty
-
-In principle, producing all pdf's up to, say, week 6, can be achieved with
-
-```
-week-all 6
-```
 which would recompute the following files - stored in `pdf/` and not in `work/`:
 
 * `Python-w6.pdf`,
+
+```bash
+week-one-to 6
+```
+
+computes
 * `Python-w1-to-w6.pdf`,
 
 
-```
-weeks-all-upto 6
+```bash
+redo-all-pdfs
 ```
 
-is equivalent to `for week in $(seq 6); do week-all $week; done`
+will redo all 9 weeks and w1-to-w9

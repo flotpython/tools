@@ -1,7 +1,7 @@
 %!TEX TS-program = xelatex
 %!TEX encoding = UTF-8 Unicode
 
-%%%%%% look for 
+%%%%%% look for
 %%%%%% xxx nbconvert xxx
 
 
@@ -359,7 +359,7 @@
 
 
 % Prevent overflowing lines due to hard-to-break entities
-\sloppy 
+\sloppy
 % Setup hyperref package
 \hypersetup{
   breaklinks=true,  % so long urls are correctly broken across lines
@@ -378,15 +378,22 @@
 
 
 %%% local additions for striplatex and others customizations
+% xxx probably due to newer nbconvert ?
+\usepackage{soul} % for the \st{} command
 
+% insert svg files using inkscape
+\usepackage{svg}
+\svgsetup{inkscapelatex=false}
+
+% missing color
+% probably due to newer nbconvert ?
+\definecolor{outerrorbackground}{HTML}{FFCCCC}
 
 % our stuff
 \usepackage{titlesec}
 \usepackage[frenchb]{babel}
 % Nicer default font (+ math font) than Computer Modern for most use cases
 \usepackage{mathpazo}
-
-\usepackage{svg}
 
 
 % Exact colors from NB

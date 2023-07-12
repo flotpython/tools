@@ -27,7 +27,7 @@ replacements = [
     ('plain',
      r'\begin{Highlighting}[]',
      r'\begin{Highlighting}[frame=lines,framerule=0.6mm,rulecolor=\color{asisframecolor}]'),
-    
+
     # quick and dirty; use 'make' in the media/ subdir in course
     # so as to produce .png files for all .svg
     # that can then be included with a regular \includegraphics
@@ -75,6 +75,16 @@ def strip_latex(in_file, out_file, nbname):
         if r'\maketitle' in line:
             continue
         if r'Licence CC BY-NC-ND' in line:
+            # xxx super patchy: when the licence includes more than the two
+            # usual authors, the raw tex output can be something like
+            # {Licence CC BY-NC-ND} {Thierry Parmentelat, Arnaud Legout \& Jean-Michel
+            # Heras} {}
+            # in which case we need to remove the extra lines
+            opening = line.count('{')
+            closing = line.count('}')
+            # hopefully one more line is enough in this case
+            if opening > closing:
+                next(in_file)
             continue
         if not ignoring:
             buffer += line
