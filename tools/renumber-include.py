@@ -28,7 +28,7 @@ def parse_specfile(filename):
             # ignore comments
             line = line.split('#')[0]
             if not line:
-                print(f"{filename}:{lineno} - ignoring", file=sys.stderr)
+                print(f"# {filename}:{lineno} - ignoring", file=sys.stderr)
                 continue
             a, b = line.split('->')
             a, b = a.strip(), b.strip()
