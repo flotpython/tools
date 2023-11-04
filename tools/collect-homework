@@ -162,6 +162,10 @@ function reset() { -git-proxy "resetting-hard" reset --hard; }
 function merge() { -git-proxy "merging" merge origin/main; }
 function lastcommit() { -git-proxy "last commit" log -1; }
 
+## this is specific to the python course
+## keeping it here for now, will need to provide
+## some sort of plugin mechanism some day..
+
 function -spot-and-run() {
     local pattern="$1"; shift
     local run="$1"; shift
