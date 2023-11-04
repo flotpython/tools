@@ -183,4 +183,28 @@ function -spot-and-run() {
 function missing-snake() { -spot-and-run 'snake*.py'; }
 function run-snake() { -spot-and-run 'snake*.py' run; }
 
-for step in "$@"; do $step; done
+if [[ -z "$@" ]]; then
+    echo "HOWTO:"
+    echo "  fill in your students in 00.ids"
+    echo "    with one of the following formats:"
+    echo "      githubid"
+    echo "      githubid/reponame"
+    echo "      https://github.com/githubid/reponame"
+    echo "    comments start with a #"
+    echo "  if reponame is not provided, then it is assumed to be"
+    echo "     either the content of 00.reponame if it exists"
+    echo "     or the name of the current folder"
+    echo "you can then use"
+    echo "  Usage: $0 <command>"
+    echo "with <command> among the following : "
+    echo "  clone"
+    echo "  summary"
+    echo "  missing"
+    echo "  fetch or pull"
+    echo "  log1 or log5"
+    echo "  urls or status or reset or merge"
+    echo "  ... "
+    echo "do 'less $(type -p $0)' to read the script for more functions"
+else
+    for step in "$@"; do $step; done
+fi
