@@ -30,6 +30,7 @@
 #
 #    in the meanwhile, you can use all the functions below
 #
+#
 # Usage:
 #
 # each function in this script can be called from the command line
@@ -45,6 +46,23 @@
 # collect-homework oldies     will output the folders present but that are no longer in 00.ids
 #                             i.e. students that have switched to another group
 # ... read the script for more functions
+#
+#
+# Format for 00.ids:
+#
+# 00.ids is supposed to contain, one per line, the github ids of the students
+# it can contain comments, starting with a #
+# for each student you can use any of the following formats
+#
+# https://github.com/student/repo
+# student/repo
+# student repo
+# student
+#
+# when the repo is not provided, it is assumed to be
+#   either the content of 00.reponame if that file exists
+#   otherwise the name of the current folder
+
 
 # get standardized github repo name (like e.g. pe-homework)
 # for the name of the current folder
@@ -55,11 +73,6 @@ else
     REPONAME=$(basename $(pwd -P))
 fi
 
-# 00.ids is supposed to contain, e.g.
-# https://github.com/student/repo
-# student/repo
-# student repo
-# student
 # the github ids of all the students
 function preprocess() {
     cat 00.ids \
