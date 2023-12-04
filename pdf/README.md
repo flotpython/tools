@@ -1,5 +1,14 @@
 # HOW TO
 
+## Update Nov 2023
+
+- turns out that a recent jupytext somehow decided to drop tags in `latex:` because of the `:`
+- so we are renaming all these tags into `latex-` in both
+  - the notebook master sources in flotpython-tools
+  - the local tool `nbcustomexec.py`
+
+- this time we obtain `Python-w1-to-w7.pdf` that is `5783306` bytes large, and so it cannot be uploaded...
+
 ## Update July 2023
 
 hopefuly the last one...
@@ -8,13 +17,15 @@ hopefuly the last one...
   only the first 7 weeks
 
 * about svg insertion
-  * uninstall the Inkspace app (if present)
+  * ~~uninstall the Inkspace app (if present)~~ this seems conter-productive in fact
   * use `brew install inkscape` to install the command-line tool
-  * result is not perfect at all, but it's OK (only 2 notebooks, and 4 figures)
+  * result is not perfect at all, but it's kind of OK:
+    * ~~there remains the need to manually remove the `.png` extensions within the calls to `\includesvg`~~ this is now taken care of by `convert-one`
+    *  (only 2 notebooks, and 4 figures)
 
 ## Update May 2020
 
-I took some time to move to a more recent version of nbconvert  
+I took some time to move to a more recent version of nbconvert
 
 * this involved patching `Python.tex` from the output of a mundane  
   `jupyter nbconvert --to latex`  
@@ -23,14 +34,15 @@ I took some time to move to a more recent version of nbconvert
 **THIS IS NOT RESOLVED**  
 
 Another problem with inclusion of `.svg` files - that are not natively supported with
-latex (they have no boundingbox); this issue turned out to be a gigantic waste of time  
+latex (they have no boundingbox); this issue turned out to be a gigantic waste of time
+
 * could not make it with using the {svg} package :
   * requires to run `xelatex` with the `--shell-escape` option
   * requires separate (and non-trivial) installation of InkScape
   * that in turn requires patching PATH
   * and with all this in place it seems like inkscape now has a new command-line
     interface, and so `includesvg` just won't work as is
-* have also seen references to a Python `cairosvg` package 
+* have also seen references to a Python `cairosvg` package
   * that I could install through `pip install`
   * but that could not load due to a allegedly unknown locale `UTF-8`
 
@@ -50,7 +62,8 @@ automatically, so it could be done over and over again.
 Workflow can be sketched like this:
 * execute the notebooks using a customized nbconvert preprocessor
 * run nbconvert to produce latex
-* use a hand-crafted umbrella `Python.tex`, that was initially produced by nbconvert but, later on heavily patched upon by Fangh - thanks again for that :)
+* use a hand-crafted umbrella `Python.tex`, that was initially produced by
+  nbconvert but, later on heavily patched upon by Fangh - thanks again for that:)
 * select actual weeks, inject resulting tex in the mix,
 * and run with `pdflatex`
 
@@ -104,17 +117,22 @@ issues as we ran into them:
 
 #### Remaining known issues
 
-* **URLs:** Fangh suggests using proper links when inserting a URL; inserting a URL as-is works in the web, but results in a poor pdf output.
+* **URLs:** Fangh suggests using proper links when inserting a URL; inserting a
+  URL as-is works in the web, but results in a poor pdf output.
 
 ## Workflow
 
 * get the list of available notebooks
-* each of them goes through `nbcustomexec.py`, that outputs a copy locally here under `work/name.ipynb`
+* each of them goes through `nbcustomexec.py`, that outputs a copy locally here
+  under `work/name.ipynb`
 * run `nbconvert --to latex` to produce `work/name.tex`
-* run `striplatex.py` to keep just valuable contents, between `\begin{document}` and `\end{document}`
-* run `scopecontents.py` that overwrites `contents.tex` according to the weeks of interest
+* run `striplatex.py` to keep just valuable contents, between `\begin{document}`
+  and `\end{document}`
+* run `scopecontents.py` that overwrites `contents.tex` according to the weeks
+  of interest
 
-* finally process `Python.tex` as usual - several times, that is, to get the page numbering right.
+* finally process `Python.tex` as usual - several times, that is, to get the
+  page numbering right.
 
 All this is for now only partially automated. Here are a few hints:
 
@@ -123,8 +141,8 @@ All this is for now only partially automated. Here are a few hints:
 *  define this to point at your main course repo
 
 ```
-COURSEDIR=$HOME/git/flotpython-course
-TOOLSDIR=$HOME/git/flotpython-tools
+export COURSEDIR=$HOME/git/flotpython-course
+export TOOLSDIR=$HOME/git/flotpython-tools
 ```
 
 * prepare work area & symlinks
@@ -155,11 +173,18 @@ execute-all
 ```
 
 This command will recompute all executed notebooks;
-  * it does this lazily (compares modification times)
-  * WARNING: this will **not** remove old stuff in case of a renaming
-  * its safe to trash `work` altogether in case of doubt; it takes a few minutes to recompute the whole stuff though.
+
+* it does this lazily (compares modification times)
+* WARNING: this will **not** remove old stuff in case of a renaming
+* its safe to trash `work` altogether in case of doubt; it takes a few minutes
+  to recompute the whole stuff though.
 
 #### convert to $\LaTeX$
+
+**note** make sure to remove all nbclassic-related stuff
+```
+pip uninstall jupyter-contrib-nbextensions jupyter-nbextensions-configurator widgetsnbextension
+```
 
 ```bash
 convert-all
@@ -217,7 +242,6 @@ week-one-to 6
 
 computes
 * `Python-w1-to-w6.pdf`,
-
 
 ```bash
 redo-all-pdfs

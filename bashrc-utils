@@ -112,6 +112,8 @@ function execute-all() {
 # run step 2 on one entry unconditionally
 # we can't pipe nbconvert to stdout b/c it prevents it
 # from storing figure files and other artefacts
+# also:
+# somehow includesvg receives an extraneous .png extension
 function convert-one() {
     local executed=$(basename $1); shift
     local stem=$(jupytext-stem $executed)
@@ -122,6 +124,7 @@ function convert-one() {
      jupyter nbconvert --to latex $executed \
      && $TOOLSDIR/pdf/striplatex.py --name $stem < $tex > $tex.tmp \
      && mv $tex.tmp $tex \
+     && sed -i.svg -e 's|\(includesvg{.*\)\.png|\1|' $tex \
      || { echo failure with target $tex -- exiting; rm -f $tex; return 1; } \
     )
 }
