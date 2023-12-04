@@ -36,7 +36,7 @@ from nbconvert.preprocessors import Preprocessor, ExecutePreprocessor
 #     cell source; this typically for cells that use input()
 
 # strip means the cell is removed from the output
-STRIP_IF_PRESENT_IN_METADATA = 'latex:skip-cell'
+STRIP_IF_PRESENT_IN_METADATA = 'latex-skip-cell'
 
 # ignore means the cell is not executed
 IGNORE_IF_PRESENT_IN_SOURCE = [
@@ -45,19 +45,19 @@ IGNORE_IF_PRESENT_IN_SOURCE = [
     '.correction(',
 ]
 
-IGNORE_IF_PRESENT_IN_METADATA = 'latex:skip-eval'
+IGNORE_IF_PRESENT_IN_METADATA = 'latex-skip-eval'
 
 # if this key is set in metadata, we evaluate that code
 # instead of the cell's code
-CODE_TO_EXEC_INSTEAD = "latex:hidden-code-instead"
-CODE_TO_EXEC_BEFORE = "latex:hidden-code-before"
-CODE_TO_EXEC_AFTER = "latex:hidden-code-after"
+CODE_TO_EXEC_INSTEAD = "latex-hidden-code-instead"
+CODE_TO_EXEC_BEFORE = "latex-hidden-code-before"
+CODE_TO_EXEC_AFTER = "latex-hidden-code-after"
 # tweaks made with the 3 above keys are usually made plain
 # by adding a comment; except if this is set
-SILENT_HIDDEN_CODE = "latex:hidden-silent"
+SILENT_HIDDEN_CODE = "latex-hidden-silent"
 
 # replace on the fly
-CODE_REPLACEMENT = "latex:replace"
+CODE_REPLACEMENT = "latex-replace"
 REPLACE_ALL = '*all*'
 
 # attach to this key either
@@ -107,7 +107,7 @@ class CustomExecPreprocessor(ExecutePreprocessor):
 
         Parameters:
           incoming: the string where replacements are to be done
-          replacements: typically metadata['latex:replace']
+          replacements: typically metadata['latex-replace']
             should be either a 2-string list
             or a list of 2-string lists
 

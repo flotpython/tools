@@ -69,22 +69,32 @@ currently written manually in a totally *ad hoc* format in
 
 #### Special tags in cell metadata
 
-We have defined a few cell metadata tags that allow us to work around most
+We have defined a few cell metadata keys that allow us to work around most
 issues as we ran into them:
 
-* `latex:skip-cell` : ignore that cell altogether: don't evaluate,
+* `latex-skip-cell` : ignore that cell altogether: don't evaluate,
    don't show in output;
-* `latex:skip-eval` : don't evaluate that cell, but keep in output;
-* `latex:hidden-code-instead` : this is for cells that expect an input, typically with builtin `input()`; we run this code instead of the actual cell code;
-* `latex:hidden-silent` : resulting cell code just says something odd has happened, but does not divulge actual code; typically in conjunction with `latex:hidden-code-instead` for exercises;
-* `latex:replace` : allows to replace parts of the source; typically used to deal with characters that were not supported by latex.
+* `latex-skip-eval` : don't evaluate that cell, but keep in output;
+* `latex-hidden-code-instead` : this is for cells that expect an input,
+  typically with builtin `input()`; we run this code instead of the actual cell
+  code;
+* `latex-hidden-silent` : resulting cell code just says something odd has
+  happened, but does not divulge actual code; typically in conjunction with
+  `latex-hidden-code-instead` for exercises;
+* `latex-replace` : allows to replace parts of the source; typically used to
+  deal with characters that were not supported by latex.
 
 **Notes**
 
-* there's also provisions for `latex:hidden-code-before` and
-* `latex:hidden-code-after` but I did not need these eventually;
-  `latex:replace` was kind of convenient, but it's still a little hacky:
-
+* these keys are to be used as **raw metadata**, and *not* as tags (remember a
+  metadata tag cannot have a value); in cases where a boolean value is expected
+  (e.g. `latex-skip-cell`), only the presence of the key is checked, regardless
+  of the associated value
+* there's also provisions for
+  * `latex-hidden-code-before` and
+  * `latex-hidden-code-after`  
+     but I did not need these eventually
+* `latex-replace` was kind of convenient, but it's still a little hacky:
   * first off it does not replace in the cell's outputs - for now, at least;
   * second, this way of dealing with weird symbols turned out a huge waste
     of time; at some point I thought I'd have more power with xelatex
