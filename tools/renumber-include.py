@@ -74,8 +74,8 @@ def main():
     completed = subprocess.run("git ls-files", shell=True, capture_output=True)
     ls_files = completed.stdout.decode()
     ls_files = [x for x in ls_files.split("\n") if x]
-    ls_files = [x for x in ls_files if Path(x).is_file()]
-    print(f"we have {len(ls_files)} under git", file=sys.stderr)
+    ls_files = [x for x in ls_files if Path(x).is_file() and not Path(x).is_symlink()]
+    print(f"we have {len(ls_files)} true files (not link) under git", file=sys.stderr)
 
     print("bash renumber-include-sed.sh")
     sed_expressions = [
