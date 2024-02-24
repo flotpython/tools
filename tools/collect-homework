@@ -40,7 +40,9 @@
 # collect-homework list       will output all ids on stdout
 # collect-homework fetch      will fetch all repos
 # collect-homework pull       will pull all repos
-# collect-homework log1       will show the last commit of each repo
+# collect-homework log1       will show the (full) last commit of each repo
+# collect-homework l1         will show the last commit of each repo (one line per commit)
+# collect-homework ln 4       same on the 4 last commits of each repo
 # collect-homework missing    will output the folders missing
 #                             i.e. students that have not yet created their repo
 # collect-homework oldies     will output the folders present but that are no longer in 00.ids
@@ -149,6 +151,8 @@ function missing() {
 function -git-proxy() {
     local message="$1"; shift
     for d in $dirs; do
+        # ignoring non-git folders
+        [[ -d "$d/.git" ]] || { 1>&2 echo ignoring non-git folder $d; continue; }
         [[ -n "$message" ]] && echo ===== $message in $d
         git -C $d "$@"
     done
@@ -166,14 +170,15 @@ function clone() {
 }
 
 function urls() { -git-proxy "" remote get-url origin; }
-function log1() { -git-proxy "" log -1 --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(dim bold red)%an%C(reset) - %s%C(red)%d%C(reset)'; }
-function log5() { -git-proxy "LISTING 5" log --oneline --all --graph -5; }
+function log1() { -git-proxy "last commit" log -1; }
+function l1() { -git-proxy "" log -1 --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(dim bold red)%an%C(reset) - %s%C(red)%d%C(reset)'; }
+function l5() { -git-proxy "LISTING 5" log --oneline --all --graph -5 --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(dim bold red)%an%C(reset) - %s%C(red)%d%C(reset)'; }
+function ln() { local nlines="$1"; shift; -git-proxy "LISTING $nlines" log --oneline --all --graph -$nlines --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(dim bold red)%an%C(reset) - %s%C(red)%d%C(reset)'; }
 function status() { -git-proxy "STATUS" status; }
 function fetch() { -git-proxy "FETCHING" fetch --all; }
 function pull() { -git-proxy "pulling" pull; }
 function reset() { -git-proxy "resetting-hard" reset --hard; }
 function merge() { -git-proxy "merging" merge origin/main; }
-function lastcommit() { -git-proxy "last commit" log -1; }
 
 ## this is specific to the python course
 ## keeping it here for now, will need to provide
@@ -223,5 +228,5 @@ if [[ -z "$@" ]]; then
     echo "  ... "
     echo "do 'less $(type -p $0)' to read the script for more functions"
 else
-    for step in "$@"; do $step; done
+    "$@"
 fi
