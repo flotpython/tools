@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
 """
 helpful to reorder included material in a course
@@ -17,8 +17,12 @@ import subprocess
 from pathlib import Path
 from argparse import ArgumentParser
 
+verbose = False
+
+
 def mylen(iterator):
     return sum(map(lambda x: 1, iterator))
+
 
 def parse_specfile(filename):
     result = []
@@ -26,14 +30,20 @@ def parse_specfile(filename):
         for lineno, line in enumerate(feed, 1):
             line = line.strip()
             # ignore comments
-            line = line.split('#')[0]
+            line = line.split("#")[0]
             if not line:
-                print(f"# {filename}:{lineno} - ignoring", file=sys.stderr)
+                if verbose:
+                    print(f"# {filename}:{lineno} - ignoring", file=sys.stderr)
                 continue
-            a, b = line.split('->')
-            a, b = a.strip(), b.strip()
-            result.append((a, b))
+            try:
+                a, b = line.split("->")
+                a, b = a.strip(), b.strip()
+                result.append((a, b))
+            except ValueError:
+                if verbose:
+                    print(f"# {filename}:{lineno} - ignoring", file=sys.stderr)
     return result
+
 
 # each run prints shell commands, and also
 # returns a sed substitute expression
@@ -50,26 +60,33 @@ def rename(a, b, ls_files) -> str:
             target_dir.mkdir()
         print(f"git mv {oldfile} {newfile}")
     if found:
-         return f"s|{a}|{b}|g"
+        return f"s|{a}|{b}|g"
 
 
 def main():
     parser = ArgumentParser()
+    parser.add_argument("--verbose", action="store_true")
     parser.add_argument("specfile")
     args = parser.parse_args()
+    if args.verbose:
+        global verbose
+        verbose = True
     completed = subprocess.run("git ls-files", shell=True, capture_output=True)
     ls_files = completed.stdout.decode()
-    ls_files = [x for x in ls_files.split('\n') if x]
+    ls_files = [x for x in ls_files.split("\n") if x]
+    ls_files = [x for x in ls_files if Path(x).is_file()]
     print(f"we have {len(ls_files)} under git", file=sys.stderr)
 
     print("bash renumber-include-sed.sh")
     sed_expressions = [
-        rename(a, b, ls_files) for (a, b) in parse_specfile(args.specfile)]
+        rename(a, b, ls_files) for (a, b) in parse_specfile(args.specfile)
+    ]
     # remove None
     sed_expressions = [x for x in sed_expressions if x]
-    files_for_bash = ' '.join(f'"{file}"' for file in ls_files)
-    expressions_for_bash = ' '.join(f"-e '{x}'" for x in sed_expressions)
-    with open('renumber-include-sed.sh', 'w') as writer:
+    files_for_bash = " ".join(f'"{file}"' for file in ls_files)
+    expressions_for_bash = " ".join(f"-e '{x}'" for x in sed_expressions)
+    with open("renumber-include-sed.sh", "w") as writer:
         print(f"gsed -i.rename {expressions_for_bash} {files_for_bash}", file=writer)
+
 
 main()
