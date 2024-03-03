@@ -37,7 +37,8 @@
 # e.g. (read through the file for more details)
 # collect-homework clone      will clone all repos
 # collect-homework summary    will output a summary of all repos (nb of commits, last commit date, ...)
-# collect-homework list       will output all ids on stdout
+# collect-homework ids        will output all ids on stdout
+# collect-homework repos      will output all ids on stdout
 # collect-homework fetch      will fetch all repos
 # collect-homework pull       will pull all repos
 # collect-homework log1       will show the (full) last commit of each repo
@@ -96,15 +97,15 @@ function oldies() {
     done
 }
 
-function list() {
+function ids() {
     echo $IDS
 }
-function list-repos() {
+function repos() {
     for id_repo in $ID_REPOS; do
         local id=$(echo $id_repo | cut -d: -f1)
         local repo=$(echo $id_repo | cut -d: -f2)
         [[ -z $repo ]] && repo=$REPONAME
-        echo $id is using repo $repo
+        echo $id/$repo
     done
 }
 
