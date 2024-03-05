@@ -227,25 +227,28 @@ function main() {
 }
 
 HOWTO="
-  fill in your students in 00.ids
+  fill in your students in a file named 00.ids
     with one of the following formats:
-      githubid
-      githubid/reponame
-      https://github.com/githubid/reponame
+      - githubid
+      - githubid/reponame
+      - https://github.com/githubid/reponame
     comments start with a #
   if reponame is not provided, then it is assumed to be
-     either the content of 00.reponame if it exists
-     or the name of the current folder
+     - either the content of 00.reponame if it exists
+     - or the name of the current folder otherwise
 you can then use
-  Usage: $0 <command>
+  Usage: $0 [-s s1,s2] <command>
 with <command> among the following :
   clone
   summary
-  missing
   fetch or pull
-  log1 or log5
+  l1 or l5 or ln 2 (log on that many latest commits)
   urls or status or reset or merge
   ...
+the -s option can be used to select some students only
+  it takes a comma-separated list of students and can be given several times
+  it will work only for commands that assume the student folder already exists
+  so typically NOT clone
 do 'less $(type -p $0)' to read the script for more functions
 "
 
