@@ -120,7 +120,7 @@ function summary() {
         counter=$(($counter + 1))
         printf '%02d ' $counter
         printf '%24s ' $id
-        local nb_folders=$(find $id -type d | fgrep -v '/.git/' | wc -l)
+        local nb_folders=$(find $id -type d -depth +0 | grep -vE '/.git($|/)' | wc -l)
         local nb_files=$(find $id -type f | fgrep -v '/.git/' | wc -l)
         local nb_git_files=$(git -C $id ls-files | wc -l)
         local nb_commits=$(git -C $id log --oneline | wc -l)
