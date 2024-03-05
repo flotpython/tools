@@ -180,6 +180,7 @@ function fetch() { -git-proxy "FETCHING" fetch --all; }
 function pull() { -git-proxy "pulling" pull; }
 function reset() { -git-proxy "resetting-hard" reset --hard; }
 function merge() { -git-proxy "merging" merge origin/main; }
+function run() { -git-proxy "running" "$@"; }
 
 ## this is specific to the python course
 ## keeping it here for now, will need to provide
@@ -244,6 +245,8 @@ with <command> among the following :
   fetch or pull
   l1 or l5 or ln 2 (log on that many latest commits)
   urls or status or reset or merge
+  run allows to provide your own git command, like e.g.
+    collect-homework -s jean-mineur run ls-files
   ...
 the -s option can be used to select some students only
   it takes a comma-separated list of students and can be given several times
