@@ -88,11 +88,11 @@ IDS=$(preprocess | awk '{print $1}')
 ID_REPOS=$(preprocess | awk '{print $1":"$2}')
 
 # all these are considered as belonging to students
-dirs=$(find . -depth 1 -type d)
+DIRS=$(find . -depth 1 -type d)
 
 # students that have switched to another group
 function oldies() {
-    for d in $dirs; do
+    for d in $DIRS; do
         echo $IDS | grep -q $d || { echo OLDY $d; }
     done
 }
@@ -149,16 +149,6 @@ function missing() {
     done
 }
 
-function -git-proxy() {
-    local message="$1"; shift
-    for d in $dirs; do
-        # ignoring non-git folders
-        [[ -d "$d/.git" ]] || { 1>&2 echo ignoring non-git folder $d; continue; }
-        [[ -n "$message" ]] && echo ===== $message in $d
-        git -C $d "$@"
-    done
-}
-
 function clone() {
     for id_repo in $ID_REPOS; do
         local id=$(echo $id_repo | cut -d: -f1)
@@ -167,6 +157,16 @@ function clone() {
         [ -d $id ] && { echo $id OK; continue; }
         echo cloning into $id from repo $repo
         git clone git@github.com:$id/$repo.git $id
+    done
+}
+
+function -git-proxy() {
+    local message="$1"; shift
+    for d in $DIRS; do
+        # ignoring non-git folders
+        [[ -d "$d/.git" ]] || { 1>&2 echo ignoring non-git folder $d; continue; }
+        [[ -n "$message" ]] && echo ===== $message in $d
+        git -C $d "$@"
     done
 }
 
@@ -206,28 +206,51 @@ function -spot-and-run() {
 function missing-snake() { -spot-and-run 'snake*.py'; }
 function run-snake() { -spot-and-run 'snake*.py' run; }
 
-if [[ -z "$@" ]]; then
-    echo "HOWTO:"
-    echo "  fill in your students in 00.ids"
-    echo "    with one of the following formats:"
-    echo "      githubid"
-    echo "      githubid/reponame"
-    echo "      https://github.com/githubid/reponame"
-    echo "    comments start with a #"
-    echo "  if reponame is not provided, then it is assumed to be"
-    echo "     either the content of 00.reponame if it exists"
-    echo "     or the name of the current folder"
-    echo "you can then use"
-    echo "  Usage: $0 <command>"
-    echo "with <command> among the following : "
-    echo "  clone"
-    echo "  summary"
-    echo "  missing"
-    echo "  fetch or pull"
-    echo "  log1 or log5"
-    echo "  urls or status or reset or merge"
-    echo "  ... "
-    echo "do 'less $(type -p $0)' to read the script for more functions"
-else
+function main() {
+    local students=""
+    while getopts "s:" opt; do
+        case $opt in
+            s)
+                students="$students $(sed -e s'|/||' -e s'|,| |' <<< "$OPTARG")"
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
+    if [[ -n "$students" ]]; then
+        IDS=$(echo $students)
+        DIRS=$(find $IDS -depth 0 -type d)
+        echo using DIRS=$DIRS
+    fi
+    # call the function
+    echo "calling $@"
     "$@"
+}
+
+HOWTO="
+  fill in your students in 00.ids
+    with one of the following formats:
+      githubid
+      githubid/reponame
+      https://github.com/githubid/reponame
+    comments start with a #
+  if reponame is not provided, then it is assumed to be
+     either the content of 00.reponame if it exists
+     or the name of the current folder
+you can then use
+  Usage: $0 <command>
+with <command> among the following :
+  clone
+  summary
+  missing
+  fetch or pull
+  log1 or log5
+  urls or status or reset or merge
+  ...
+do 'less $(type -p $0)' to read the script for more functions
+"
+
+if [[ -z "$@" ]]; then
+    echo "$HOWTO"
+else
+    main "$@"
 fi
