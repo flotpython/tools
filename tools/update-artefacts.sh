@@ -59,6 +59,7 @@ function handle-one-dir() {
     echo "re-building $ZIP"
     rm -f $ZIP
     zip $ZIP $FILES
+    unzip -l $ZIP > ARTEFACTS.list
 }
 
 function help() {
