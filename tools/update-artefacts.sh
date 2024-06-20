@@ -11,7 +11,7 @@ function spot-files() {
     FILES=""
     local line
     for line in $(grep -v '#' ARTEFACTS); do
-    FILES="$FILES $(git ls-files $line)"
+        FILES="$FILES $(git ls-files $line)"
     done
     local file
     for file in $FILES; do
@@ -29,6 +29,36 @@ function up-to-update() {
         [[ $file -nt $ZIP ]] && { return 1; }
     done
     return 0
+}
+
+
+function handle-one-dir() {
+    local dir="$1"; shift
+
+    # the arg is expected to be a folder or file; we cd in there
+    # if called with a file (typically the ARTEFACTS file itself)
+    [[ -f "$dir" ]] && dir=$(dirname $dir)
+    [[ -d "$dir" ]] || {
+        echo no such folder $dir - ignored
+        return
+    }
+    cd "$dir"
+    echo "$COMMAND in $(pwd)"
+
+    local foldername="$FOLDERNAMEOPT"
+    [[ -z "$foldername" ]] && foldername=$(basename $(pwd))
+
+    ZIP=ARTEFACTS-${foldername}.zip
+    spot-files
+
+    up-to-update && [[ -z "$FORCE" ]] && {
+        echo $ZIP is up-to-date
+        return 0
+    }
+    echo "$COMMAND in $(pwd)"
+    echo "re-building $ZIP"
+    rm -f $ZIP
+    zip $ZIP $FILES
 }
 
 function help() {
@@ -50,7 +80,7 @@ function main() {
             h) help ;;
         esac
     done
-    shift $((OPTIND-1))
+    shift $((OPTIND - 1))
 
     # no argument means .
     local args="."
@@ -61,28 +91,6 @@ function main() {
         cd $here
         handle-one-dir $arg
     done
-}
-
-function handle-one-dir() {
-    local dir="$1"; shift
-
-    # the arg is expected to be a folder or file; we cd in there
-    # if called with a file (typically the ARTEFACTS file itself)
-    [[ -f "$dir" ]] && dir=$(dirname $dir)
-    [[ -d "$dir" ]] || { echo no such folder $dir - ignored; return; }
-    cd "$dir"; echo "$COMMAND in $(pwd)";
-
-    local foldername="$FOLDERNAMEOPT"
-    [[ -z "$foldername" ]] && foldername=$(basename $(pwd))
-
-    ZIP=ARTEFACTS-${foldername}.zip
-    spot-files
-
-    up-to-update && [[ -z "$FORCE" ]] && { echo $ZIP is up-to-date; return 0; }
-    echo "$COMMAND in $(pwd)"
-    echo "re-building $ZIP"
-    rm -f $ZIP
-    zip $ZIP $FILES
 }
 
 main "$@"
