@@ -155,8 +155,9 @@ function clone() {
         local repo=$(echo $id_repo | cut -d: -f2)
         [[ -z $repo ]] && repo=$REPONAME
         [ -d $id ] && { echo $id OK; continue; }
-        echo cloning into $id from repo $repo
-        git clone git@github.com:$id/$repo.git $id
+        local command="git clone git@github.com:$id/$repo.git $id"
+        echo $command
+        $command
     done
 }
 
