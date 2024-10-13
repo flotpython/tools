@@ -82,6 +82,9 @@ import subprocess
 
 import click
 
+from parallelsh import ParallelSh
+
+
 CFG_REPONAME = "00.reponame"
 CFG_IDS = "00.ids"
 
@@ -130,6 +133,18 @@ def _git_proxy(message, *git_command):
         # print(command)
         subprocess.run(command)
 
+def _git_proxy_parallel(message, *git_command):
+    """
+    Run a git command on all DIRS, but asynchronously
+    """
+    commands = []
+    for slug in get_actual_repos():
+        if slug not in IDS:
+            continue
+        command = f"git -C {slug} {' '.join(git_command)}"
+        commands.append(command)
+    ParallelSh(commands).run()
+
 # globals
 
 REPONAME = get_reponame()
@@ -173,26 +188,31 @@ def missing():
         if slug not in DIRS:
             print(slug)
 
+
 @cli.command('clone')
 def clone():
+    commands = []
     for slug, reponame in IDS.items():
         gitrepo = Path(slug) / "git"
         if gitrepo.exists() and gitrepo.is_dir():
             print(f"{slug} OK")
             continue
-        command = ["git", "clone", "git@github.com:{slug}/{reponame}.git", slug]
-        subprocess.run(command)
+        commands.append(["git", "clone", "git@github.com:{slug}/{reponame}.git", slug])
+    ParallelSh(commands).run()
+
 
 @cli.command('urls')
 def urls(): _git_proxy("", "remote", "get-url", "origin")
 @cli.command('status')
 def status(): _git_proxy("STATUS", "status")
+@cli.command('s')
+def s(): _git_proxy("SHORT STATUS", "status", "--short", "--untracked-files=no")
 @cli.command('diff')
 def diff(): _git_proxy("DIFF", "diff")
 @cli.command('pull')
-def pull(): _git_proxy("PULL", "pull")
+def pull(): _git_proxy_parallel("PULL", "pull")
 @cli.command('fetch')
-def fetch(): _git_proxy("FETCH", "fetch")
+def fetch(): _git_proxy_parallel("FETCH", "fetch")
 @cli.command('reset')
 def reset(): _git_proxy("RESET", "reset", "--hard")
 @cli.command('merge')
