@@ -187,6 +187,8 @@ def clone():
 def urls(): _git_proxy("", "remote", "get-url", "origin")
 @cli.command('status')
 def status(): _git_proxy("STATUS", "status")
+@cli.command('diff')
+def diff(): _git_proxy("DIFF", "diff")
 @cli.command('pull')
 def pull(): _git_proxy("PULL", "pull")
 @cli.command('fetch')
