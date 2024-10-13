@@ -11,7 +11,7 @@ Config files:
 
 \b
 Workflow:
-0. you start with creating a file `00.ids` containing the github ids of the students
+0. you start with creating a file `00.ids` containing the github slugs (ids) of the students
    all the ones that you are aware of at least
 1. ask each student to create a github repo named like e.g. numerique-homework
    usually repo should be private (so students can't see each other's work),
@@ -34,7 +34,7 @@ Workflow:
 6. if a student has misspelled their repo name
    e.g. it is called homework-num instead of the expected numerique-homework
    then tweak 00.ids (see the format below)
-7. iterate until you have all the ids and all the repos cloned
+7. iterate until you have all the slugs and all the repos cloned
 
 in the meanwhile, you can use all the functions below
 
@@ -43,7 +43,7 @@ collect-homework --help
 \b
 collect-homework clone      will clone all repos
 collect-homework summary    will output a summary of all repos (nb of commits, last commit date, ...)
-collect-homework ids        will output all ids on stdout
+collect-homework slugs      will output all slugs on stdout
 collect-homework repos      will output all ids on stdout
 collect-homework fetch      will fetch all repos
 collect-homework pull       will pull all repos
@@ -86,46 +86,60 @@ from parallelsh import ParallelSh
 
 
 CFG_REPONAME = "00.reponame"
-CFG_IDS = "00.ids"
+CFG_SLUGS = "00.ids"
 
 
-def get_reponame():
-    cfg_reponame = Path(CFG_REPONAME)
-    if not cfg_reponame.exists():
-        return Path(".").absolute().parts[-1]
-    with cfg_reponame.open() as f:
-        return f.read().strip()
+class Init:
+    """
+    reads current status
+    """
+
+    @staticmethod
+    def get_reponame():
+        cfg_reponame = Path(CFG_REPONAME)
+        if not cfg_reponame.exists():
+            return Path(".").absolute().parts[-1]
+        with cfg_reponame.open() as f:
+            return f.read().strip()
+
+    @staticmethod
+    def get_slugs(default_reponame):
+        cfg_slugs = Path(CFG_SLUGS)
+        result = {}
+        with cfg_slugs.open() as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                line = line.strip()
+                if "/" in line:
+                    slug, reponame = line.split("/")
+                    slug = slug.replace("https://github.com/", "")
+                else:
+                    slug = line
+                    reponame = default_reponame
+                result[slug] = reponame
+        return dict(sorted(result.items(), key=lambda x: x[0].lower()))
+
+    @staticmethod
+    def get_actual_repos():
+        for dir in Path(".").glob("*/.git"):
+            yield dir.parent.parts[-1]
 
 
-def get_ids(default_reponame):
-    cfg_ids = Path(CFG_IDS)
-    result = {}
-    with cfg_ids.open() as f:
-        for line in f:
-            if line.startswith('#'):
-                continue
-            line = line.strip()
-            if "/" in line:
-                slug, reponame = line.split("/")
-                slug = slug.replace("https://github.com/", "")
-            else:
-                slug = line
-                reponame = default_reponame
-            result[slug] = reponame
-    return result
+# globals
 
+REPONAME = Init.get_reponame()
+SLUGS = Init.get_slugs(REPONAME)
+DIRS = list(Init.get_actual_repos())
 
-def get_actual_repos():
-    for dir in Path(".").glob("*/.git"):
-        yield dir.parent.parts[-1]
 
 
 def _git_proxy(message, *git_command):
     """
     Run a git command on all DIRS
     """
-    for slug in get_actual_repos():
-        if slug not in IDS:
+    for slug in Init.get_actual_repos():
+        if slug not in SLUGS:
             continue
         if message:
             print(f"===== {message} in {slug}")
@@ -133,24 +147,18 @@ def _git_proxy(message, *git_command):
         # print(command)
         subprocess.run(command)
 
-def _git_proxy_parallel(message, *git_command):
+# message not used yet
+def _git_proxy_parallel(_message, *git_command):
     """
     Run a git command on all DIRS, but asynchronously
     """
     commands = []
-    for slug in get_actual_repos():
-        if slug not in IDS:
+    for slug in Init.get_actual_repos():
+        if slug not in SLUGS:
             continue
         command = f"git -C {slug} {' '.join(git_command)}"
         commands.append(command)
     ParallelSh(commands).run()
-
-# globals
-
-REPONAME = get_reponame()
-IDS = get_ids(REPONAME)
-DIRS = list(get_actual_repos())
-
 
 # the click CLI object
 @click.group(chain=True, help=sys.modules[__name__].__doc__)
@@ -158,33 +166,34 @@ DIRS = list(get_actual_repos())
 def cli(students):
     if students is None:
         return
-    global IDS
-    focus_ids = {}
+    global SLUGS
+    focus_slugs = {}
     students = re.split(r'[/,\s]+', students)
     for student in students:
         if not student:
             continue
-        if student not in IDS:
-            print(f"unknown student {student} in {CFG_IDS} - -s option ignored")
+        if student not in SLUGS:
+            print(f"unknown student {student} in {CFG_SLUGS} - -s option ignored")
             return
-        focus_ids[student] = IDS[student]
-    IDS = focus_ids
+        focus_slugs[student] = SLUGS[student]
+    SLUGS = focus_slugs
 
 
 # commands
-@cli.command('ids')
-def ids():
-    for slug, reponame in IDS.items():
-        print(f"{slug}/{reponame}")
+@cli.command('slugs')
+@click.option('-v', '--verbose', is_flag=True, default=False, help="show reponames", )
+def slugs(verbose):
+    for slug, reponame in SLUGS.items():
+        print(f"{slug}/{reponame}" if verbose else slug)
 
 @cli.command('dirs')
 def dirs():
-    for dir in DIRS:
+    for dir in sorted(DIRS, key=lambda x: x.lower()):
         print(dir)
 
 @cli.command('missing')
 def missing():
-    for slug, reponame in IDS.items():
+    for slug, reponame in SLUGS.items():
         if slug not in DIRS:
             print(slug)
 
@@ -192,7 +201,7 @@ def missing():
 @cli.command('clone')
 def clone():
     commands = []
-    for slug, reponame in IDS.items():
+    for slug, reponame in SLUGS.items():
         gitrepo = Path(slug) / "git"
         if gitrepo.exists() and gitrepo.is_dir():
             print(f"{slug} OK")
@@ -218,45 +227,33 @@ def reset(): _git_proxy("RESET", "reset", "--hard")
 @cli.command('merge')
 def merge(): _git_proxy("MERGE", "merge", "origin/main")
 
-@cli.command('log1')
-def log1():
-    _git_proxy("last commit", "log", "-1")
+FORMAT = """--format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(dim bold red)%an%C(reset) - %s%C(red)%d%C(reset)'"""
+
 @cli.command('l1')
-def l1():
-    _git_proxy(
-        "",
-        "log", "-1",
-        "--format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(dim bold red)%an%C(reset) - %s%C(red)%d%C(reset)'"
-    )
+def l1(): _git_proxy("", "log", "-1", FORMAT )
+@cli.command('log1')
+def log1(): _git_proxy("last commit", "log", "-1")
 @cli.command('l5')
-def l5():
-    _git_proxy(
-        "LISTING 5",
-        "log", "--oneline", "--all", "--graph", "-5",
-        "--format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(dim bold red)%an%C(reset) - %s%C(red)%d%C(reset)'"
-    )
+def l5(): _git_proxy( "LISTING 5 latest commits", "log", "--oneline", "--all", "--graph", "-5", FORMAT )
+
 @cli.command('ln')
 @click.argument('n', type=int)
-def ln(n):
-    _git_proxy(
-        f"LISTING {n}",
-        "log", "--oneline", "--all", "--graph", f"-{n}",
-        "--format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(dim bold red)%an%C(reset) - %s%C(red)%d%C(reset)'"
-    )
+def ln(n): _git_proxy( f"LISTING {n} latest commits", "log", "--oneline", "--all", "--graph", f"-{n}", FORMAT )
+
 
 # pour a bit of shell in the mix
 summary_function = """
 function summary() {
-    local id="$1"; shift
-    [[ -d $id ]] || { printf '%27s ' $id; echo MISSING; return; }
-    git -C $id log >& /dev/null || { printf '%27s ' $id; echo EMPTY; return; }
-    printf '%24s ' $id
-    local nb_folders=$(find $id -type d -depth +0 | grep -vE '/.git($|/)' | wc -l)
-    local nb_files=$(find $id -type f | fgrep -v '/.git/' | wc -l)
-    local nb_git_files=$(git -C $id ls-files | wc -l)
-    local nb_commits=$(git -C $id log --oneline | wc -l)
-    local dateh=$(git -C $id log -1 --format='%ah')
-    local date=$(git -C $id log -1 --format='%ar')
+    local slug="$1"; shift
+    [[ -d $slug ]] || { printf '%27s ' $slug; echo MISSING; return; }
+    git -C $slug log >& /dev/null || { printf '%27s ' $slug; echo EMPTY; return; }
+    printf '%24s ' $slug
+    local nb_folders=$(find $slug -type d -depth +0 | grep -vE '/.git($|/)' | wc -l)
+    local nb_files=$(find $slug -type f | fgrep -v '/.git/' | wc -l)
+    local nb_git_files=$(git -C $slug ls-files | wc -l)
+    local nb_commits=$(git -C $slug log --oneline | wc -l)
+    local dateh=$(git -C $slug log -1 --format='%ah')
+    local date=$(git -C $slug log -1 --format='%ar')
     printf "%2d folders - " $nb_folders
     printf "%3d files - " $nb_files
     printf "%3d git files - " $nb_git_files
@@ -264,13 +261,12 @@ function summary() {
     printf "last on %s (%s)" "$dateh" "$date"
     echo
 }
-
 """
 
 @cli.command('summary')
 def summary():
     commands = []
-    for slug, reponame in IDS.items():
+    for slug, _ in SLUGS.items():
         commands.append(summary_function + f"summary {slug}")
     ParallelSh(commands, echo=False).run()
 
