@@ -244,10 +244,35 @@ def ln(n):
         "--format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(dim bold red)%an%C(reset) - %s%C(red)%d%C(reset)'"
     )
 
+# pour a bit of shell in the mix
+summary_function = """
+function summary() {
+    local id="$1"; shift
+    [[ -d $id ]] || { printf '%27s ' $id; echo MISSING; return; }
+    git -C $id log >& /dev/null || { printf '%27s ' $id; echo EMPTY; return; }
+    printf '%24s ' $id
+    local nb_folders=$(find $id -type d -depth +0 | grep -vE '/.git($|/)' | wc -l)
+    local nb_files=$(find $id -type f | fgrep -v '/.git/' | wc -l)
+    local nb_git_files=$(git -C $id ls-files | wc -l)
+    local nb_commits=$(git -C $id log --oneline | wc -l)
+    local dateh=$(git -C $id log -1 --format='%ah')
+    local date=$(git -C $id log -1 --format='%ar')
+    printf "%2d folders - " $nb_folders
+    printf "%3d files - " $nb_files
+    printf "%3d git files - " $nb_git_files
+    printf "%3d commits - " $nb_commits
+    printf "last on %s (%s)" "$dateh" "$date"
+    echo
+}
+
+"""
+
+@cli.command('summary')
+def summary():
+    commands = []
+    for slug, reponame in IDS.items():
+        commands.append(summary_function + f"summary {slug}")
+    ParallelSh(commands, echo=False).run()
 
 if __name__ == '__main__':
-    # import sys
-    # thismodule = sys.modules[__name__]
-    # doctring = thismodule.__doc__
-    # print(doctring)
     cli()

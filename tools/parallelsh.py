@@ -8,8 +8,9 @@ import asyncio
 
 class ParallelSh:
 
-    def __init__(self, commands: list[str]):
+    def __init__(self, commands: list[str], echo=True):
         self.commands = commands
+        self.echo = echo
 
     def run(self):
         """
@@ -39,7 +40,8 @@ class ParallelSh:
             command,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         stdout, stderr = await proc.communicate()
-        print(f"===> {command}")
+        if self.echo:
+            print(f"===> {command}")
         if stdout:
             if stderr:                  # if no stderr, no need to separate
                 print("[stdout]:")
@@ -54,5 +56,11 @@ if __name__ == "__main__":
         "echo the sleeper; sleep 1",        # this one will be the last to finish
         "echo hello",
         "ls -l /tmp",
+        """function foo() {
+            echo "this is a function"
+            [ -f /etc/passwd ] && echo "passwd exists"
+        }
+        foo
+        """
     ]
     ParallelSh(commands).run()
