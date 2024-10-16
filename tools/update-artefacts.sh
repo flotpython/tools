@@ -7,6 +7,12 @@ FOLDERNAMEOPT=
 ZIP="computed-later"
 FILES="computed-later"
 
+VERBOSE=
+function verbose() {
+    [[ -z "$VERBOSE" ]] && return
+    echo "verbose: $@"
+}
+
 function spot-files() {
     FILES=""
     local line
@@ -17,15 +23,17 @@ function spot-files() {
     for file in $FILES; do
         [[ -f "$file" ]] || { echo WARNING: file $file not found; }
     done
+    verbose found artefacts FILES=$FILES
 }
 
 
 # returns 1 (needs update) or 0 (everything up-to-date)
 function up-to-update() {
     local zip="$1"; shift
-    local files
+    # local files
     [[ -f "$ZIP" ]] || { return 1; }
-    for file in $files; do
+    for file in $FILES; do
+        verbose checking $ZIP vs $file
         [[ $file -nt $ZIP ]] && { return 1; }
     done
     return 0
