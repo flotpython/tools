@@ -3,21 +3,14 @@
 # particularly for the degree sign (was pdflatex)
 LATEX = xelatex
 
-all: everything
+all: tex
+.PHONY: all
 
 COURSEDIR = ../../flotpython-course
 
 TOOL = makecorriges.py
 
-TITLE = MOOC Python 3;Session 2018;Tous les corrigés
-define title
-MOOC Python 3;Session 2018;Corrigés de la semaine $(1)
-endef
-shipdict_title = MOOC Python 3;Session 2018;Exercice shipdict
-
-WEEKS = 2 3 4 5 6 7
-SHIPDICT-FILES = $(COURSEDIR)/data/shipdict.py
-ALL = 2 3 4 5 $(SHIPDICT-FILES) 6 7
+TITLE = MOOC Python 3;Tous les corrigés
 
 ##########
 # Semaine 6:
@@ -26,18 +19,15 @@ ALL = 2 3 4 5 $(SHIPDICT-FILES) 6 7
 # la soluce complète est dans data/shipdict.py
 # qui contient pour des raisons historiques des balises BEG/END
 
-shipdict: corriges-shipdict.tex
-
-corriges-shipdict.tex:
-	$(TOOL) --title "$(shipdict_title)" --output corriges-shipdict $(SHIPDICT-FILES)
-
-pdf:: corriges-shipdict.pdf
+WEEKS = 2 3 4 5 6 7
+SHIPDICT-FILES = $(COURSEDIR)/data/shipdict.py
+ALL = 2 3 4 5 $(SHIPDICT-FILES) 6 7
 
 ##########
 # the default for runcorriges is to produce both a .txt and .tex
 WTEXS =  $(foreach week, $(WEEKS), corriges-w$(week).tex)
 
-everything: corriges-all.tex $(WTEXS) shipdict
+tex: corriges-all.tex
 
 corriges-all.tex: .FORCE
 	$(TOOL) --contents --title "$(TITLE)" --output corriges-all $(ALL)
@@ -47,23 +37,7 @@ pdf:: corriges-all.pdf
 index:
 	pdflatex corriges-all
 
-
-
-###### how to redo a week
-define week_target
-w$(1): corriges-w$(1).tex
-
-corriges-w$(1).tex: .FORCE
-	$(TOOL) --output corriges-w$(1) \
-	    --title "MOOC Python 3;Session 2018;Corrigés de la semaine $(1)" $(1)
-
-corriges-w$(1).pdf: corriges-w$(1).tex
-	$(LATEX) corriges-w$(1).tex
-
-pdf:: corriges-w$(1).pdf
-endef
-
-$(foreach week, $(WEEKS), $(eval $(call week_target,$(week))))
+.PHONY: tex pdf index
 
 
 ########## validation
@@ -71,6 +45,8 @@ $(foreach week, $(WEEKS), $(eval $(call week_target,$(week))))
 # that can validate all known exos at once
 validation:
 	$(TOOL) --notebook -o validation $(WEEKS)
+
+.PHONY: validation
 
 ########## separate
 # create one .py file per solution in the separate/ 
