@@ -1,5 +1,12 @@
 # HOW TO
 
+## Update Jul 2025
+
+- had to tweak the `Python.tex` template again (see below), to make it work with the latest
+  `nbconvert` and `pandoc` versions
+- also needed to artificially define the `\pandocbounded` command, to avoid a weird error
+  that I could not track down; this is probably related to a recent `pandoc` version
+
 ## Update Nov 2023
 
 - turns out that a recent jupytext somehow decided to drop tags in `latex:` because of the `:`
@@ -146,10 +153,20 @@ as of 2025-07 it was still `3.12`
 ```
 cd ~/git/flotpython-tools
 conda create -n flotpython-tools python=3.xx
-pip install -r requirements.txt
 conda activate flotpython-tools
+pip install -r requirements.txt
+# just in case; othrewise I get this error when converting to latex:
+#     from notebook.services.config import ConfigManager
+# ModuleNotFoundError: No module named 'notebook.services'
+pip uninstall jupyter_contrib_nbextensions
 cd pdf
 ```
+
+**NOTE**
+there may remain some missing requirements in `requirements.txt`  
+and this may cause the first `execute-all` to record installation leftovers, that may interfere/disrupt with latex runs
+
+
 
 *  define this to point at your main course repo
 
@@ -161,7 +178,7 @@ export TOOLSDIR=$HOME/git/flotpython-tools
 * prepare work area & symlinks
 
 ```
-mkdir -p work
+mkdir work
 for symlink in media data; do
     ln -sf $COURSEDIR/$symlink work
 done

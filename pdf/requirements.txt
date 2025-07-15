@@ -3,3 +3,4 @@ jupyter
 jupytext
 ipythontutor
 ipympl
+plotly-express
