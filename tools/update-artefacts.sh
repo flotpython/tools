@@ -34,7 +34,10 @@ function up-to-update() {
     [[ -f "$ZIP" ]] || { return 1; }
     for file in $FILES; do
         verbose checking $ZIP vs $file
-        [[ $file -nt $ZIP ]] && { return 1; }
+        [[ $file -nt $ZIP ]] && {
+            echo "found news in $file"
+            return 1
+        }
     done
     return 0
 }
