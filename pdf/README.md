@@ -138,6 +138,19 @@ All this is for now only partially automated. Here are a few hints:
 
 #### preparation
 
+* create a conda environment
+
+select the same python version as the one used in the course repo, 
+as of 2025-07 it was still `3.12`
+
+```
+cd ~/git/flotpython-tools
+conda create -n flotpython-tools python=3.xx
+pip install -r requirements.txt
+conda activate flotpython-tools
+cd pdf
+```
+
 *  define this to point at your main course repo
 
 ```
@@ -218,7 +231,7 @@ scopecontents.py --from 1 --to 6
 
 #### rebuild
 
-with the config chosen above with scopecontents.py , rebuild the pdf
+with the config chosen above with `scopecontents.py`, rebuild the pdf
 
 ```bash
 latex-current
