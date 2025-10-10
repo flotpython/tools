@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # using the current folder name
-COMMAND=$(basename $0)
+COMMAND=$(basename $0 2>/dev/null)
+[[ -z "$COMMAND" ]] && COMMAND=update-artefacts.sh
 FOLDERNAMEOPT=
 
 ZIP="computed-later"
@@ -12,6 +13,33 @@ function verbose() {
     [[ -z "$VERBOSE" ]] && return
     echo "verbose: $@"
 }
+
+# compare a zip file with the version in the git index
+# returns 0 if identical, 1 if different, 2 on error
+function zipdiff-index() {
+    local file="$1"
+    local tmp="/tmp/git_index_$(basename "$file")"
+
+    # Extract the version from the Git index (staged version)
+    git show ":0:./$file" > "$tmp" 2>/dev/null || {
+        echo "File not in index: $file" >&2
+        return 1
+    }
+
+    # Compare with working copy
+    zipcmp "$tmp" "$file"
+    local status=$?
+
+    if [ $status -eq 0 ]; then
+        >&2 echo "✅ No differences in ZIP content ($file)"
+    else
+        >&2 echo "❌ ZIPs differ ($file)"
+    fi
+
+    rm -f "$tmp"
+    return $status
+}
+
 
 function spot-files() {
     FILES=""
@@ -54,7 +82,7 @@ function handle-one-dir() {
         return
     }
     cd "$dir"
-    echo "$COMMAND in $(pwd)"
+    echo -n "--------  "; basename $(pwd)
 
     local foldername="$FOLDERNAMEOPT"
     [[ -z "$foldername" ]] && foldername=$(basename $(pwd))
@@ -66,10 +94,15 @@ function handle-one-dir() {
         echo $ZIP is up-to-date
         return 0
     }
-    echo "$COMMAND in $(pwd)"
     echo "re-building $ZIP"
     rm -f $ZIP
     zip $ZIP $FILES
+
+    zipdiff-index $ZIP && {
+        echo " - no change found - discarding"
+        git restore $ZIP ARTEFACTS.list
+    }
+    echo "- updated"
     unzip -l $ZIP > ARTEFACTS.list
 }
 
@@ -94,8 +127,8 @@ function main() {
     done
     shift $((OPTIND - 1))
 
-    # no argument means .
-    local args="."
+    # no argument makes nothing
+    local args=""
     [[ -n "$@" ]] && args="$@"
 
     here=$(pwd)
