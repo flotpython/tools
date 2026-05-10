@@ -267,8 +267,10 @@ class OrgaDiff:
                             print_orange(f"  then hand off custom domain {cname} —")
                             print_orange(f"  if {next_orga} hasn't yet verified the parent domain, do it once at")
                             print_orange(f"  https://github.com/organizations/{next_orga}/settings/pages")
-                            print_blue(f"( gh api -X PUT repos/{next_orga}/{reponame}/pages -f cname={cname} -F https_enforced=true &&")
-                            print_blue(f"echo '{{\"cname\": null}}' | gh api -X PUT repos/{prev_orga}/{reponame}/pages --input - &&")
+                            print_blue(f"( echo '{{\"cname\": null}}' | gh api -X PUT repos/{prev_orga}/{reponame}/pages --input - &&")
+                            print_blue(f"gh api -X PUT repos/{next_orga}/{reponame}/pages -f cname={cname} &&")
+                            print_blue(f"echo 'waiting for HTTPS cert provisioning (up to 5min)...' &&")
+                            print_blue(f"n=0; until gh api -X PUT repos/{next_orga}/{reponame}/pages -F https_enforced=true 2>/dev/null; do n=$((n+1)); [ $n -ge 30 ] && exit 1; sleep 10; done &&")
                             print_blue(f"gh api repos/{prev_orga}/{reponame} -X PATCH -f archived=true >& /dev/null &&")
                             print_blue(f"echo OK )")
                     else:

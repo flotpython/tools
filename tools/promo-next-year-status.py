@@ -123,7 +123,7 @@ def fetch_invitations(org: str) -> list[dict]:
     return invites
 
 
-def render_repos_section(org: str, repos: list[dict]) -> str:
+def render_repos_section(org: str, repos: list[dict], archived_last: bool = False) -> str:
     nb_archived = sum(1 for r in repos if r["isArchived"])
     nb_active = len(repos) - nb_archived
     lines = [
@@ -134,7 +134,8 @@ def render_repos_section(org: str, repos: list[dict]) -> str:
         "| Name | Visibility | Archived | Last Committer | Description |",
         "|------|------------|----------|----------------|-------------|",
     ]
-    for r in repos:
+    ordered = sorted(repos, key=lambda r: (r["isArchived"],)) if archived_last else repos
+    for r in ordered:
         vis = "PRIVATE" if r["visibility"] == "PRIVATE" else "public"
         archived = "yes" if r["isArchived"] else ""
         lines.append(
@@ -144,27 +145,40 @@ def render_repos_section(org: str, repos: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_members_section(org: str, members: list[dict], invites: list[dict]) -> str:
-    out = [f"## Members of {org}", "", f"### Confirmed ({len(members)})", ""]
-    if members:
-        out += [
-            "| Login | Role |",
-            "|-------|------|",
-        ]
-        for m in members:
-            out.append(f"| {m['login']} | {m['role']} |")
-    else:
-        out.append("_none_")
-    out += ["", f"### Pending invitations ({len(invites)})", ""]
-    if invites:
-        out += [
-            "| Login / Email | Role | Invited by |",
-            "|---------------|------|------------|",
-        ]
-        for i in invites:
-            out.append(f"| {i['login_or_email']} | {i['role']} | {i['inviter']} |")
-    else:
-        out.append("_none_")
+def render_members_diff(
+    new_org: str, old_org: str,
+    new_members: list[dict], old_members: list[dict], new_invites: list[dict],
+) -> str:
+    rows: dict[str, dict] = {}
+
+    def upsert(ident: str) -> dict:
+        key = ident.lower()
+        if key not in rows:
+            rows[key] = {"name": ident, "last": "", "accepted": "", "pending": ""}
+        return rows[key]
+
+    for m in old_members:
+        upsert(m["login"])["last"] = m["role"]
+    for m in new_members:
+        upsert(m["login"])["accepted"] = m["role"]
+    for inv in new_invites:
+        upsert(inv["login_or_email"])["pending"] = inv["role"]
+
+    nb_last = sum(1 for r in rows.values() if r["last"])
+    nb_accepted = sum(1 for r in rows.values() if r["accepted"])
+    nb_pending = sum(1 for r in rows.values() if r["pending"])
+
+    out = [
+        f"## Members — {old_org} vs {new_org}",
+        "",
+        f"last year: {nb_last} · next-year accepted: {nb_accepted} · next-year pending: {nb_pending}",
+        "",
+        f"| Login / Email | last year ({old_org}) | next-year accepted ({new_org}) | next-year pending ({new_org}) |",
+        "|---|---|---|---|",
+    ]
+    for key in sorted(rows.keys()):
+        r = rows[key]
+        out.append(f"| {r['name']} | {r['last']} | {r['accepted']} | {r['pending']} |")
     return "\n".join(out) + "\n"
 
 
@@ -189,15 +203,13 @@ def build_report(target: str) -> str:
     new_members = fetch_members(new_org)
     old_members = fetch_members(old_org)
     new_invites = fetch_invitations(new_org)
-    old_invites = fetch_invitations(old_org)
 
     sections = [
         f"# {target} repos migration status\n",
         render_repos_section(new_org, new_repos),
-        render_repos_section(old_org, old_repos),
+        render_repos_section(old_org, old_repos, archived_last=True),
         render_howto_grant(new_org, old_org),
-        render_members_section(new_org, new_members, new_invites),
-        render_members_section(old_org, old_members, old_invites),
+        render_members_diff(new_org, old_org, new_members, old_members, new_invites),
     ]
     return "\n".join(sections)
 
